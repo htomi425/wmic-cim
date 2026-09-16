@@ -7,16 +7,12 @@ Windows 11 24H2 / Windows Server 2025 では WMIC が既定で入りません。
 ```bat
 wmic os get caption,version
 wmic process where name="explorer.exe" get processid
+wmic /node:HOST os get caption
 ```
 
-と書いているなら、このラッパーが同じコマンドラインを受け取って
+と書いているなら、このラッパーが同じコマンドラインを受け取って CIM cmdlet を実行します。
 
-```powershell
-Get-CimInstance -ClassName Win32_OperatingSystem | Select-Object Caption, Version
-Get-CimInstance -ClassName Win32_Process -Filter "name='explorer.exe'" | Select-Object ProcessId
-```
-
-を実行します。
+**何を受け、何を拒否し、リモートをどう繋ぐか** は [SPEC.md](SPEC.md) が正本です。仕様が曖昧なまま使う必要はありません。
 
 リポジトリ: <https://github.com/htomi425/wmic-cim>
 
@@ -59,10 +55,19 @@ wmic /?
 | `CALL` | `Invoke-CimMethod`（クラスの in パラメータを実行時に解決） |
 | `CREATE` | `New-CimInstance` |
 | `DELETE` | `Remove-CimInstance` |
-| `/NODE` `/NAMESPACE` `/USER` | `-ComputerName` `-Namespace` `-Credential` |
+| `/NODE` | `New-CimSession`。既定は WS-Man、接続失敗時だけ DCOM |
+| `/PROTOCOL` | CIMIC 拡張。`AUTO` / `WSMAN` / `DCOM` |
+| `/NAMESPACE` `/USER` | `-Namespace` / セッションの `-Credential` |
 | `/FORMAT:LIST\|CSV\|VALUE\|TABLE` | ほぼ同じ見た目の出力 |
 
 エイリアス表は [`aliases.json`](aliases.json) です。未登録クラスでも `PATH` で直接指定できます。
+
+リモートの判定表・落とすエラー / 落とさないエラーは [SPEC.md §3](SPEC.md) にあります。短く言うと:
+
+- ローカルと `.` / `localhost` はセッションを作りません
+- `/NODE:HOST` は WS-Man を 5 秒試し、WinRM 系の失敗だけ DCOM に落とします
+- クラス不正・WQL 不正・Access Denied では落としません
+- 固定するなら `/protocol:dcom` または環境変数 `WMIC_PROTOCOL`
 
 ## 安全側に倒しているところ
 
@@ -79,7 +84,7 @@ wmic /?
 wmic:root\cimv2>
 ```
 
-`quit` で抜けます。
+`quit` で抜けます。リモートセッションはプロセス内で使い回し、終了時に閉じます。
 
 ## 要件
 

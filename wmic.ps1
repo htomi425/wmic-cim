@@ -22,6 +22,7 @@
 
 .NOTES
   Project: https://github.com/htomi425/wmic-cim
+  Spec:    SPEC.md  ( /NODE プロトコル、拒否条件、出力の契約 )
 #>
 [CmdletBinding()]
 param(
@@ -34,6 +35,10 @@ $ErrorActionPreference = 'Stop'
 
 $script:AliasDoc = $null
 $script:DefaultNamespace = 'root/cimv2'
+$script:CimSessionCache = @{}
+$script:NodeProtocol = @{}
+$script:DcomWarned = @{}
+$script:KeepCimSessions = $false
 
 function Get-NoteProperty {
     param($Object, [string]$Name)
@@ -345,30 +350,247 @@ function Get-WmicSelectProperties {
     return $null
 }
 
-function New-WmicCimParams {
+function New-WmicQueryParams {
     param($Parsed, [string]$ClassName, [string]$Namespace)
     $p = @{ ClassName = $ClassName }
     if ($Namespace -and $Namespace -ne 'root/cimv2') { $p.Namespace = $Namespace }
-    $node = Get-WmicSwitchValue $Parsed 'node'
-    if ($node -is [string] -and $node) {
-        $nodes = @($node -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ })
-        if ($nodes.Count -eq 1) { $p.ComputerName = $nodes[0] }
-        elseif ($nodes.Count -gt 1) { $p.ComputerName = $nodes }
-    }
-    $user = Get-WmicSwitchValue $Parsed 'user'
-    $pass = Get-WmicSwitchValue $Parsed 'password'
-    if ($user -or $pass) {
-        if ($pass -is [string] -and $pass) {
-            $sec = ConvertTo-SecureString $pass -AsPlainText -Force
-            $p.Credential = New-Object System.Management.Automation.PSCredential (($user).ToString(), $sec)
-        }
-        else {
-            $p.Credential = Get-Credential -UserName $user
-        }
-    }
     $filter = ConvertTo-WqlFilter $Parsed.Where
     if ($filter) { $p.Filter = $filter }
     return $p
+}
+
+function Get-WmicNodeList {
+    param($Parsed)
+    $node = Get-WmicSwitchValue $Parsed 'node'
+    if (-not ($node -is [string] -and $node)) { return @() }
+    return @($node -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+}
+
+function Test-WmicLocalNode {
+    param([string]$Name)
+    if ([string]::IsNullOrWhiteSpace($Name)) { return $true }
+    $n = $Name.Trim()
+    $n = $n.TrimStart('\')
+    switch ($n.ToLowerInvariant()) {
+        '.' { return $true }
+        'localhost' { return $true }
+        '127.0.0.1' { return $true }
+        '::1' { return $true }
+    }
+    if ($n -and $env:COMPUTERNAME -and ($n -ieq $env:COMPUTERNAME)) { return $true }
+    return $false
+}
+
+function Resolve-WmicProtocol {
+    param($Parsed)
+    $raw = Get-WmicSwitchValue $Parsed 'protocol'
+    if (-not $raw) { $raw = $env:WMIC_PROTOCOL }
+    if ($raw -is [string] -and $raw.Trim()) {
+        switch ($raw.Trim().ToUpperInvariant()) {
+            'DCOM'  { return 'Dcom' }
+            'WSMAN' { return 'Wsman' }
+            'WINRM' { return 'Wsman' }
+            'AUTO'  { return 'Auto' }
+            default { throw "/PROTOCOL は AUTO / WSMAN / DCOM のいずれかです: $raw" }
+        }
+    }
+    return 'Auto'
+}
+
+function Get-WmicCredential {
+    param($Parsed)
+    $user = Get-WmicSwitchValue $Parsed 'user'
+    $pass = Get-WmicSwitchValue $Parsed 'password'
+    if (-not $user -and -not $pass) { return $null }
+    if ($pass -is [string] -and $pass) {
+        $sec = ConvertTo-SecureString $pass -AsPlainText -Force
+        $userName = if ($user) { $user.ToString() } else { $env:USERNAME }
+        return New-Object System.Management.Automation.PSCredential ($userName, $sec)
+    }
+    return Get-Credential -UserName $user
+}
+
+function Test-WmicWsmanFailure {
+    param($ErrorRecord)
+    $parts = New-Object System.Collections.Generic.List[string]
+    if ($ErrorRecord) {
+        [void]$parts.Add([string]$ErrorRecord.FullyQualifiedErrorId)
+        $ex = $ErrorRecord.Exception
+        $guard = 0
+        while ($null -ne $ex -and $guard -lt 5) {
+            [void]$parts.Add([string]$ex.Message)
+            [void]$parts.Add([string]$ex.GetType().FullName)
+            try { [void]$parts.Add(('HRESULT:{0:X8}' -f $ex.HResult)) } catch { }
+            $ex = $ex.InnerException
+            $guard++
+        }
+    }
+    $blob = ($parts -join ' ')
+    if ($blob -match 'WSMan|WinRM|WSMAN|WS-Management|CimJob|ResourceUnavailable|ConnectionErr|0x8033|HRESULT:8033|RPC server is unavailable|The client cannot connect|WinRM クライアント|WinRM client') {
+        return $true
+    }
+    return $false
+}
+
+function Get-WmicSessionCacheKey {
+    param([string]$ComputerName, [string]$UserName, [string]$Protocol)
+    $u = if ($UserName) { $UserName } else { '' }
+    return '{0}|{1}|{2}' -f $ComputerName.ToLowerInvariant(), $u.ToLowerInvariant(), $Protocol
+}
+
+function Get-WmicCachedSession {
+    param([string]$Key)
+    if (-not $script:CimSessionCache.ContainsKey($Key)) { return $null }
+    $entry = $script:CimSessionCache[$Key]
+    $session = $null
+    if ($entry -is [hashtable] -and $entry.ContainsKey('Session')) { $session = $entry.Session }
+    else { $session = $entry }
+    if ($null -eq $session) { return $null }
+    try {
+        $id = $session.Id
+        $alive = Get-CimSession -Id $id -ErrorAction Stop
+        if ($alive) { return $session }
+    }
+    catch {
+        $script:CimSessionCache.Remove($Key)
+    }
+    return $null
+}
+
+function New-WmicDcomSessionOption {
+    return New-CimSessionOption -Protocol Dcom -Impersonation Impersonate -PacketPrivacy
+}
+
+function Connect-WmicCimSession {
+    param(
+        [string]$ComputerName,
+        $Credential,
+        [ValidateSet('Auto', 'Wsman', 'Dcom')]
+        [string]$Protocol = 'Auto'
+    )
+
+    if (Test-WmicLocalNode $ComputerName) { return $null }
+
+    $userName = ''
+    if ($Credential) { $userName = [string]$Credential.UserName }
+    $memKey = '{0}|{1}' -f $ComputerName.ToLowerInvariant(), $userName.ToLowerInvariant()
+
+    $effective = $Protocol
+    if ($Protocol -eq 'Auto' -and $script:NodeProtocol.ContainsKey($memKey)) {
+        $effective = $script:NodeProtocol[$memKey]
+    }
+
+    $cacheKey = Get-WmicSessionCacheKey $ComputerName $userName $effective
+    $cached = Get-WmicCachedSession $cacheKey
+    if ($cached) { return $cached }
+
+    $base = @{
+        ComputerName = $ComputerName
+        ErrorAction  = 'Stop'
+    }
+    if ($Credential) { $base.Credential = $Credential }
+
+    $wsmanErr = $null
+    $session = $null
+    $used = $effective
+
+    switch ($effective) {
+        'Dcom' {
+            $session = New-CimSession @base -SessionOption (New-WmicDcomSessionOption)
+            $used = 'Dcom'
+        }
+        'Wsman' {
+            $session = New-CimSession @base -OperationTimeoutSec 5
+            $used = 'Wsman'
+        }
+        default {
+            try {
+                $session = New-CimSession @base -OperationTimeoutSec 5
+                $used = 'Wsman'
+            }
+            catch {
+                if (-not (Test-WmicWsmanFailure $_)) { throw }
+                $wsmanErr = $_
+                $session = $null
+            }
+            if ($null -eq $session) {
+                try {
+                    $session = New-CimSession @base -SessionOption (New-WmicDcomSessionOption)
+                    $used = 'Dcom'
+                }
+                catch {
+                    $dcomMsg = $_.Exception.Message
+                    $wsMsg = $wsmanErr.Exception.Message
+                    throw ("/NODE:{0} : WS-Man 失敗 ({1}); DCOM も失敗 ({2})" -f $ComputerName, $wsMsg, $dcomMsg)
+                }
+                Write-Verbose ("/NODE:{0} : WS-Man 不可のため DCOM にフォールバック" -f $ComputerName)
+                if (-not $script:DcomWarned.ContainsKey($memKey)) {
+                    Write-Warning ("/NODE:{0} : WS-Man に失敗したため DCOM で接続しました。固定するなら /protocol:dcom" -f $ComputerName)
+                    $script:DcomWarned[$memKey] = $true
+                }
+            }
+        }
+    }
+
+    $script:NodeProtocol[$memKey] = $used
+    $finalKey = Get-WmicSessionCacheKey $ComputerName $userName $used
+    $script:CimSessionCache[$finalKey] = @{ Session = $session; Protocol = $used }
+    return $session
+}
+
+function Resolve-WmicCimTargets {
+    param($Parsed)
+    $nodes = @(Get-WmicNodeList $Parsed)
+    $cred = Get-WmicCredential $Parsed
+    $proto = Resolve-WmicProtocol $Parsed
+
+    if ($nodes.Count -eq 0) {
+        if ($cred) {
+            Write-Warning '/USER は /NODE 付きのリモート セッションにだけ使います。'
+        }
+        return @{ Sessions = @(); AlsoLocal = $true }
+    }
+
+    $sessions = New-Object System.Collections.Generic.List[object]
+    $alsoLocal = $false
+    foreach ($n in $nodes) {
+        if (Test-WmicLocalNode $n) {
+            $alsoLocal = $true
+            continue
+        }
+        $s = Connect-WmicCimSession -ComputerName $n -Credential $cred -Protocol $proto
+        if ($s) { [void]$sessions.Add($s) }
+    }
+    return @{ Sessions = @($sessions); AlsoLocal = $alsoLocal }
+}
+
+function Get-WmicCimParamSets {
+    param([hashtable]$Query, $Targets)
+    $sets = New-Object System.Collections.Generic.List[hashtable]
+    if ($Targets.AlsoLocal) {
+        $sets.Add($Query)
+    }
+    if ($Targets.Sessions -and @($Targets.Sessions).Count -gt 0) {
+        $q = @{}
+        foreach ($k in $Query.Keys) { $q[$k] = $Query[$k] }
+        $q['CimSession'] = @($Targets.Sessions)
+        $sets.Add($q)
+    }
+    if ($sets.Count -eq 0) {
+        throw '/NODE の対象が空です。'
+    }
+    return @($sets)
+}
+
+function Close-WmicCimSessions {
+    foreach ($entry in @($script:CimSessionCache.Values)) {
+        $session = $null
+        if ($entry -is [hashtable] -and $entry.ContainsKey('Session')) { $session = $entry.Session }
+        else { $session = $entry }
+        if ($null -eq $session) { continue }
+        try { Remove-CimSession -CimSession $session -ErrorAction SilentlyContinue } catch { }
+    }
+    $script:CimSessionCache = @{}
 }
 
 function ConvertTo-WmicValue {
@@ -454,18 +676,19 @@ function Write-WmicFormatted {
 }
 
 function Get-CimMethodMap {
-    param([string]$ClassName, [string]$MethodName, [string]$Namespace, $SessionParams)
-    try {
-        $gc = @{ ClassName = $ClassName }
-        if ($Namespace) { $gc.Namespace = $Namespace }
-        if ($SessionParams.ContainsKey('ComputerName')) { $gc.ComputerName = $SessionParams.ComputerName }
-        if ($SessionParams.ContainsKey('Credential')) { $gc.Credential = $SessionParams.Credential }
-        $cls = Get-CimClass @gc
-        $m = $cls.CimClassMethods | Where-Object { $_.Name -eq $MethodName }
-        if (-not $m) { $m = $cls.CimClassMethods | Where-Object { $_.Name -ieq $MethodName } }
-        return $m
+    param([string]$ClassName, [string]$MethodName, [string]$Namespace, $Targets)
+    $gc = @{ ClassName = $ClassName }
+    if ($Namespace) { $gc.Namespace = $Namespace }
+    foreach ($p in Get-WmicCimParamSets $gc $Targets) {
+        try {
+            $cls = Get-CimClass @p
+            $m = $cls.CimClassMethods | Where-Object { $_.Name -eq $MethodName }
+            if (-not $m) { $m = $cls.CimClassMethods | Where-Object { $_.Name -ieq $MethodName } }
+            if ($m) { return @($m)[0] }
+        }
+        catch { }
     }
-    catch { return $null }
+    return $null
 }
 
 function ConvertTo-MethodArguments {
@@ -515,9 +738,11 @@ Usage:
   wmic [switches] <alias | PATH class> [where <expr>] <verb> [args]
 
 Switches:
-  /NODE:host[,host2]     ComputerName
+  /NODE:host[,host2]     リモート。既定は WS-Man、接続失敗時だけ DCOM
+  /PROTOCOL:AUTO|WSMAN|DCOM
+                         /NODE のプロトコル（CIMIC 拡張。環境変数 WMIC_PROTOCOL でも可）
   /NAMESPACE:root\cimv2  Namespace
-  /USER:name             Credential
+  /USER:name             Credential（/NODE と一緒に使う）
   /PASSWORD:secret       (plain; prefer /USER alone for a prompt)
   /FORMAT:TABLE|LIST|CSV|VALUE|XML
   /OUTPUT:file           Write stdout to file
@@ -538,6 +763,8 @@ Examples:
   wmic service where startmode="auto" get name,state
   wmic path Win32_Process where processid=4 get name
   wmic process call create "notepad.exe"
+  wmic /node:HOST os get caption
+  wmic /protocol:dcom /node:HOST os get caption
 '@
 }
 
@@ -581,36 +808,39 @@ function Invoke-WmicParsed {
 
     $verb = $Parsed.Verb
     if (-not $verb) { $verb = 'GET' }
-    $cimParams = New-WmicCimParams $Parsed $className $ns
+    $query = New-WmicQueryParams $Parsed $className $ns
+    $targets = Resolve-WmicCimTargets $Parsed
+    $paramSets = @(Get-WmicCimParamSets $query $targets)
 
     switch ($verb) {
         { $_ -eq 'GET' -or $_ -eq 'LIST' } {
-            $objects = Get-CimInstance @cimParams
+            $objects = foreach ($p in $paramSets) { Get-CimInstance @p }
             $props = Get-WmicSelectProperties $Parsed $info
             if ($props) { $objects = $objects | Select-Object $props }
             Write-WmicFormatted $Parsed $objects $props
         }
         'DELETE' {
-            if (-not $cimParams.ContainsKey('Filter')) {
+            if (-not $query.ContainsKey('Filter')) {
                 throw 'WHERE の無い DELETE は拒否します。'
             }
-            Get-CimInstance @cimParams | Remove-CimInstance
+            foreach ($p in $paramSets) { Get-CimInstance @p | Remove-CimInstance }
         }
         'SET' {
             if (-not $Parsed.SetPairs -or $Parsed.SetPairs.Count -eq 0) { throw 'SET には name=value が必要です。' }
             $hash = @{}
             foreach ($pair in $Parsed.SetPairs) { $hash[$pair.Name] = $pair.Value }
-            Get-CimInstance @cimParams | Set-CimInstance -Property $hash
+            foreach ($p in $paramSets) { Get-CimInstance @p | Set-CimInstance -Property $hash }
         }
         'CREATE' {
             if (-not $Parsed.CreatePairs -or $Parsed.CreatePairs.Count -eq 0) { throw 'CREATE には name=value が必要です。' }
             $hash = @{}
             foreach ($pair in $Parsed.CreatePairs) { $hash[$pair.Name] = $pair.Value }
-            $np = @{ ClassName = $className; Property = $hash }
-            if ($cimParams.ContainsKey('Namespace')) { $np.Namespace = $cimParams.Namespace }
-            if ($cimParams.ContainsKey('ComputerName')) { $np.ComputerName = $cimParams.ComputerName }
-            if ($cimParams.ContainsKey('Credential')) { $np.Credential = $cimParams.Credential }
-            New-CimInstance @np
+            foreach ($p in $paramSets) {
+                $np = @{ ClassName = $className; Property = $hash }
+                if ($p.ContainsKey('Namespace')) { $np.Namespace = $p.Namespace }
+                if ($p.ContainsKey('CimSession')) { $np.CimSession = $p.CimSession }
+                New-CimInstance @np
+            }
         }
         'CALL' {
             if (-not $Parsed.CallMethod) {
@@ -618,10 +848,7 @@ function Invoke-WmicParsed {
                 Write-WmicHelp $Parsed $info2
                 return
             }
-            $sessionBits = @{}
-            if ($cimParams.ContainsKey('ComputerName')) { $sessionBits.ComputerName = $cimParams.ComputerName }
-            if ($cimParams.ContainsKey('Credential')) { $sessionBits.Credential = $cimParams.Credential }
-            $meta = Get-CimMethodMap $className $Parsed.CallMethod $ns $sessionBits
+            $meta = Get-CimMethodMap $className $Parsed.CallMethod $ns $targets
             $methodName = $Parsed.CallMethod
             if ($meta) { $methodName = $meta.Name }
             elseif ($info -and (Get-NoteProperty $info 'methods')) {
@@ -648,23 +875,28 @@ function Invoke-WmicParsed {
             }
             if ($methodName -ieq 'Create') { $isStatic = $true }
 
-            if ($isStatic -or -not $cimParams.ContainsKey('Filter')) {
-                $im = @{ ClassName = $className; MethodName = $methodName }
-                if ($ns -and $ns -ne 'root/cimv2') { $im.Namespace = $ns }
-                if ($sessionBits.ContainsKey('ComputerName')) { $im.ComputerName = $sessionBits.ComputerName }
-                if ($sessionBits.ContainsKey('Credential')) { $im.Credential = $sessionBits.Credential }
-                if ($argHash.Count -gt 0) { $im.Arguments = $argHash }
-                Invoke-CimMethod @im
+            if ($isStatic -or -not $query.ContainsKey('Filter')) {
+                foreach ($p in $paramSets) {
+                    $im = @{ ClassName = $className; MethodName = $methodName }
+                    if ($p.ContainsKey('Namespace')) { $im.Namespace = $p.Namespace }
+                    if ($p.ContainsKey('CimSession')) { $im.CimSession = $p.CimSession }
+                    if ($argHash.Count -gt 0) { $im.Arguments = $argHash }
+                    Invoke-CimMethod @im
+                }
             }
             else {
-                $inst = Get-CimInstance @cimParams
-                $im = @{ MethodName = $methodName }
-                if ($argHash.Count -gt 0) { $im.Arguments = $argHash }
-                $inst | Invoke-CimMethod @im
+                foreach ($p in $paramSets) {
+                    $inst = Get-CimInstance @p
+                    $im = @{ MethodName = $methodName }
+                    if ($argHash.Count -gt 0) { $im.Arguments = $argHash }
+                    $inst | Invoke-CimMethod @im
+                }
             }
         }
         'ASSOCIATORS' {
-            Get-CimInstance @cimParams | Get-CimAssociatedInstance
+            foreach ($p in $paramSets) {
+                Get-CimInstance @p | Get-CimAssociatedInstance
+            }
         }
         default { throw "未対応の動詞です: $verb" }
     }
@@ -693,19 +925,26 @@ function Invoke-WmicLine {
 
 function Start-WmicInteractive {
     Write-Host 'CIMIC — WMIC compatibility wrapper.  quit で終了。' -ForegroundColor DarkGray
+    $script:KeepCimSessions = $true
     $ns = $script:DefaultNamespace
-    while ($true) {
-        $prompt = "wmic:$($ns -replace '/','\')>"
-        try { $line = Read-Host $prompt }
-        catch { break }
-        if ($null -eq $line) { break }
-        try {
-            $r = Invoke-WmicLine $line
-            if ($r -eq 'EXIT') { break }
+    try {
+        while ($true) {
+            $prompt = "wmic:$($ns -replace '/','\')>"
+            try { $line = Read-Host $prompt }
+            catch { break }
+            if ($null -eq $line) { break }
+            try {
+                $r = Invoke-WmicLine $line
+                if ($r -eq 'EXIT') { break }
+            }
+            catch {
+                Write-Error $_
+            }
         }
-        catch {
-            Write-Error $_
-        }
+    }
+    finally {
+        $script:KeepCimSessions = $false
+        Close-WmicCimSessions
     }
 }
 
@@ -730,4 +969,7 @@ try {
 catch {
     Write-Error $_
     exit 1
+}
+finally {
+    Close-WmicCimSessions
 }
