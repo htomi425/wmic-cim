@@ -816,7 +816,6 @@ function Write-WmicFormatted {
         default { Format-WmicTable $Objects $Properties }
     }
 }
-}
 
 function Get-CimMethodMap {
     param([string]$ClassName, [string]$MethodName, [string]$Namespace, $Targets)
@@ -871,90 +870,31 @@ function Write-WmicHelp {
         $caution = Get-NoteProperty $Info 'caution'
         if ($caution) { Write-Output ('注意: {0}' -f $caution) }
         $brief = Get-NoteProperty $Info 'brief'
-        if ($brief) { Write-Output ('LIST BRIEF 列: {0}' -f ((ConvertTo-WmicList $brief) -join ', ')) }
-        $dg = Get-NoteProperty $Info 'defaultGet'
-        if ($dg) { Write-Output ('GET 既定列:    {0}' -f ((ConvertTo-WmicList $dg) -join ', ')) }
+        if ($brief) { Write-Output ('LIST BRIEF: {0}' -f ((ConvertTo-WmicList $brief) -join ', ')) }
         $methods = Get-NoteProperty $Info 'methods'
         if ($methods) {
-            Write-Output 'メソッド:'
-            foreach ($m in @(ConvertTo-WmicList $methods)) {
-                if ($null -eq $m) { continue }
-                $mName = Get-NoteProperty $m 'name'
-                $desc = Get-NoteProperty $m 'description'
-                if (-not $desc) { $desc = Get-NoteProperty $m 'descriptionJa' }
-                $argNames = New-Object System.Collections.Generic.List[string]
-                foreach ($p in @(ConvertTo-WmicList (Get-NoteProperty $m 'inParams'))) {
-                    if ($null -eq $p) { continue }
-                    $pn = Get-NoteProperty $p 'name'
-                    if ($pn) { $argNames.Add($pn) }
-                }
-                Write-Output ('  {0}({1})  {2}' -f $mName, ($argNames -join ', '), $desc)
+            $bits = New-Object System.Collections.Generic.List[string]
+            foreach ($m in (ConvertTo-WmicList $methods)) {
+                $mn = Get-NoteProperty $m 'name'
+                if ($mn) { $bits.Add($mn) }
             }
+            if ($bits.Count -gt 0) { Write-Output ('CALL: {0}' -f ($bits -join ', ')) }
         }
-        Write-Output ''
-        Write-Output '例:'
-        $exAlias = 'PATH ' + $Info.className
-        if ($Parsed.Alias) { $exAlias = $Parsed.Alias.ToLowerInvariant() }
-        Write-Output ('  wmic {0} list brief' -f $exAlias)
-        Write-Output ('  wmic {0} get /?' -f $exAlias)
-        Write-Output ('  wmic {0} /?' -f $exAlias)
+        $ex = 'PATH ' + $Info.className
+        if ($Parsed.Alias) { $ex = $Parsed.Alias.ToLowerInvariant() }
+        Write-Output ('例: wmic {0} list brief' -f $ex)
+        Write-Output '契約は SPEC.md。カタログは aliases.json。'
         return
     }
-
-    Write-Output 'CIMIC — wmic 互換ラッパー (CIM: Get-CimInstance / Invoke-CimMethod)'
-    Write-Output '公式 WMIC のヘルプ複製ではなく、実際に打つコマンド寄りです。'
-    Write-Output '仕様: SPEC.md    https://github.com/htomi425/wmic-cim'
-    Write-Output ''
-    Write-Output '使い方'
-    Write-Output '  wmic [スイッチ] <エイリアス | PATH クラス> [where <式>] <動詞> [引数]'
-    Write-Output '  引数なしで起動すると対話プロンプト (quit で終了)'
-    Write-Output ''
-    Write-Output 'よく使う例'
-    Write-Output '  wmic os get caption,version'
-    Write-Output '  wmic cpu list brief'
-    Write-Output '  wmic process where name="explorer.exe" get name,processid'
-    Write-Output '  wmic path Win32_OperatingSystem get caption'
-    Write-Output '  wmic /node:HOST os get caption'
-    Write-Output '  wmic /protocol:dcom /node:HOST os get caption'
-    Write-Output ''
-    Write-Output 'スイッチ'
-    Write-Output '  /NODE:host[,host2]     リモート。既定は WS-Man 5秒、接続失敗時だけ DCOM'
-    Write-Output '  /PROTOCOL:AUTO|WSMAN|DCOM   /NODE のプロトコル (環境変数 WMIC_PROTOCOL でも可)'
-    Write-Output '  /NAMESPACE:root\cimv2  名前空間'
-    Write-Output '  /USER:name             資格情報。/NODE と一緒に'
-    Write-Output '  /FORMAT:TABLE|LIST|CSV|VALUE|XML'
-    Write-Output '  /OUTPUT:file  /APPEND:file'
-    Write-Output ''
-    Write-Output '動詞'
-    Write-Output '  GET [列,...]     テーブル。列名は CIM の正式名 (Caption など)'
-    Write-Output '  LIST BRIEF       テーブル。エイリアスの主要列'
-    Write-Output '  LIST FULL        Name=Value で全列'
-    Write-Output '  SET / CALL / CREATE / DELETE     DELETE は WHERE 必須'
-    Write-Output ''
-    Write-Output 'エイリアス  (詳細は  wmic os /?  /  一覧は  wmic alias)'
-
-    $doc = Get-WmicAliasDocument
-    $names = @($doc.PSObject.Properties | ForEach-Object { $_.Name }) | Sort-Object
-    $line = ''
-    foreach ($n in $names) {
-        $add = $n
-        if ($line) {
-            if (($line.Length + 2 + $add.Length) -gt 78) {
-                Write-Output $line
-                $line = '  ' + $add
-            }
-            else {
-                $line = $line + '  ' + $add
-            }
-        }
-        else {
-            $line = '  ' + $add
-        }
+    $path = Join-Path $PSScriptRoot 'HELP.txt'
+    if (Test-Path -LiteralPath $path) {
+        $utf8 = New-Object System.Text.UTF8Encoding $true
+        $text = [System.IO.File]::ReadAllText($path, $utf8)
+        if ($text.Length -gt 0 -and [int][char]$text[0] -eq 0xFEFF) { $text = $text.Substring(1) }
+        Write-Output $text.TrimEnd()
+        return
     }
-    if ($line) { Write-Output $line }
-    Write-Output ''
-    Write-Output '拒否するもの: WHERE 無し DELETE、DATAFILE / FSDIR / NTEVENT の全件'
-    Write-Output 'エイリアス詳細:  wmic cpu /?     動詞の補足:  wmic process call /?'
+    Write-Output 'CIMIC. 同じフォルダの SPEC.md を見てください。'
 }
 
 function Invoke-WmicParsed {

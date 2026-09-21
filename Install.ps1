@@ -24,7 +24,7 @@ $src = $PSScriptRoot
 $dest = Join-Path $env:LOCALAPPDATA 'wmic-cim'
 New-Item -ItemType Directory -Force -Path $dest | Out-Null
 
-foreach ($name in @('wmic.ps1', 'wmic.cmd', 'aliases.json', 'Uninstall.ps1', 'README.md', 'SPEC.md')) {
+foreach ($name in @('wmic.ps1', 'wmic.cmd', 'aliases.json', 'HELP.txt', 'Uninstall.ps1', 'README.md', 'SPEC.md')) {
     $from = Join-Path $src $name
     if (Test-Path -LiteralPath $from) {
         Copy-Item -LiteralPath $from -Destination (Join-Path $dest $name) -Force

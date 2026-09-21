@@ -1,0 +1,12 @@
+CIMIC — wmic 互換 (CIM)
+
+  wmic os get caption,version
+  wmic cpu list brief
+  wmic process where name="explorer.exe" get name,processid
+  wmic /node:HOST os get caption
+
+引数なしで対話。quit で終了。
+エイリアス一覧は  wmic alias
+個別は            wmic os /?
+契約の正本は      SPEC.md
+https://github.com/htomi425/wmic-cim

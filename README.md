@@ -12,7 +12,7 @@ wmic /node:HOST os get caption
 
 と書いているなら、このラッパーが同じコマンドラインを受け取って CIM cmdlet を実行します。
 
-**何を受け、何を拒否し、リモートをどう繋ぐか** は [SPEC.md](SPEC.md) が正本です。仕様が曖昧なまま使う必要はありません。
+**何を受け、何を拒否し、リモートをどう繋ぐか** は [SPEC.md](SPEC.md) が正本です。`wmic /?` は [HELP.txt](HELP.txt) を出すだけで、SPEC の再掲ではありません。
 
 リポジトリ: <https://github.com/htomi425/wmic-cim>
 
