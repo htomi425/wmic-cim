@@ -277,6 +277,22 @@ function Test-WmicVerb {
     }
 }
 
+function Skip-WmicSwitches {
+    param($Tokens, [int]$Index, $Parsed)
+    while ($Index -lt $Tokens.Count) {
+        $sw = Parse-WmicSwitchToken $Tokens[$Index]
+        if ($null -eq $sw) { break }
+        if ($sw.Name -eq '?' -or $sw.Name -eq 'help') {
+            $Parsed.Help = $true
+        }
+        else {
+            $Parsed.Switches[$sw.Name] = $sw.Value
+        }
+        $Index++
+    }
+    return $Index
+}
+
 function Parse-WmicLine {
     param([string]$Line)
     $parsed = [ordered]@{
@@ -298,21 +314,7 @@ function Parse-WmicLine {
     $i = 0
     if ($tokens.Count -gt 0 -and $tokens[0].ToLowerInvariant() -eq 'wmic') { $i = 1 }
 
-    $eatSwitches = {
-        while ($i -lt $tokens.Count) {
-            $sw = Parse-WmicSwitchToken $tokens[$i]
-            if ($null -eq $sw) { break }
-            if ($sw.Name -eq '?' -or $sw.Name -eq 'help') {
-                $parsed.Help = $true
-                $i++
-                continue
-            }
-            $parsed.Switches[$sw.Name] = $sw.Value
-            $i++
-        }
-    }
-
-    & $eatSwitches
+    $i = Skip-WmicSwitches $tokens $i $parsed
     if ($i -ge $tokens.Count) { return [pscustomobject]$parsed }
 
     $head = $tokens[$i]
@@ -337,7 +339,7 @@ function Parse-WmicLine {
         $i++
     }
 
-    & $eatSwitches
+    $i = Skip-WmicSwitches $tokens $i $parsed
 
     if ($i -lt $tokens.Count -and $tokens[$i].ToLowerInvariant() -eq 'where') {
         $i++
@@ -349,7 +351,7 @@ function Parse-WmicLine {
         $parsed.Where = ($whereParts -join ' ')
     }
 
-    & $eatSwitches
+    $i = Skip-WmicSwitches $tokens $i $parsed
 
     if ($i -lt $tokens.Count -and (Test-WmicVerb $tokens[$i])) {
         $v = $tokens[$i].ToUpperInvariant()
@@ -657,13 +659,13 @@ function Connect-WmicCimSession {
 function Resolve-WmicCimTargets {
     param($Parsed)
     $nodes = @(Get-WmicNodeList $Parsed)
-    $cred = Get-WmicCredential $Parsed
+    if ((Get-WmicSwitchValue $Parsed 'user') -and $nodes.Count -eq 0) {
+        throw '/USER は /NODE と一緒に使います。'
+    }
     $proto = Resolve-WmicProtocol $Parsed
+    $cred = Get-WmicCredential $Parsed
 
     if ($nodes.Count -eq 0) {
-        if ($cred) {
-            Write-Warning '/USER は /NODE 付きのリモート セッションにだけ使います。'
-        }
         return @{ Sessions = @(); AlsoLocal = $true }
     }
 
@@ -698,6 +700,17 @@ function Get-WmicCimParamSets {
     return @($sets)
 }
 
+function Write-WmicFail {
+    param($ErrorRecord)
+    $msg = $null
+    if ($ErrorRecord -is [string]) { $msg = $ErrorRecord }
+    elseif ($ErrorRecord -and $ErrorRecord.Exception -and $ErrorRecord.Exception.Message) {
+        $msg = $ErrorRecord.Exception.Message
+    }
+    else { $msg = [string]$ErrorRecord }
+    [Console]::Error.WriteLine($msg)
+}
+
 function Close-WmicCimSessions {
     foreach ($entry in @($script:CimSessionCache.Values)) {
         $session = $null
@@ -719,7 +732,14 @@ function ConvertTo-WmicValue {
         }) -join ', '
         return '{' + $inner + '}'
     }
-    if ($Value -is [datetime]) { return $Value.ToString('yyyyMMddHHmmss.ffffffzzz') }
+    if ($Value -is [datetime]) {
+        $local = $Value
+        if ($Value.Kind -eq [DateTimeKind]::Utc) { $local = $Value.ToLocalTime() }
+        $offsetMin = [int][Math]::Round([TimeZoneInfo]::Local.GetUtcOffset($local).TotalMinutes)
+        $sign = '+'
+        if ($offsetMin -lt 0) { $sign = '-'; $offsetMin = -$offsetMin }
+        return ($local.ToString('yyyyMMddHHmmss.ffffff') + $sign + $offsetMin.ToString('000'))
+    }
     return [string]$Value
 }
 
@@ -733,10 +753,12 @@ function Resolve-WmicPropertyCase {
     $out = New-Object System.Collections.Generic.List[string]
     foreach ($n in $list) {
         $key = [string]$n
-        $exact = $sample.PSObject.Properties[$key]
-        if ($exact) { $out.Add($exact.Name); continue }
-        $hit = $sample.PSObject.Properties | Where-Object { $_.Name -ieq $key } | Select-Object -First 1
-        if ($hit) { $out.Add($hit.Name) } else { $out.Add($key) }
+        $hit = $null
+        foreach ($p in $sample.PSObject.Properties) {
+            if ($p.Name -match '^Cim') { continue }
+            if ($p.Name -ieq $key) { $hit = $p.Name; break }
+        }
+        if ($hit) { $out.Add($hit) } else { $out.Add($key) }
     }
     return , $out
 }
@@ -926,13 +948,13 @@ function Invoke-WmicParsed {
         return
     }
 
-    if ($info -and $info.caution) {
-        Write-Warning $info.caution
-    }
-
     $dangerous = @('CIM_DataFile', 'Win32_Directory', 'Win32_NTLogEvent')
     if ($dangerous -contains $className -and -not $Parsed.Where) {
-        throw "$className は WHERE 無しでは実行しません。Name / Logfile などで絞ってください。"
+        $msg = Get-NoteProperty $info 'caution'
+        if ([string]::IsNullOrWhiteSpace($msg)) {
+            $msg = "$className は WHERE 無しでは実行しません。"
+        }
+        throw $msg
     }
 
     $verb = $Parsed.Verb
@@ -1073,7 +1095,7 @@ function Start-WmicInteractive {
                 if ($r -eq 'EXIT') { break }
             }
             catch {
-                Write-Error $_
+                Write-WmicFail $_
             }
         }
     }
@@ -1088,7 +1110,7 @@ try {
     [void](Get-WmicAliasDocument)
 }
 catch {
-    Write-Error $_
+    Write-WmicFail $_
     exit 1
 }
 
@@ -1113,7 +1135,7 @@ try {
     Invoke-WmicLine $joined
 }
 catch {
-    Write-Error $_
+    Write-WmicFail $_
     exit 1
 }
 finally {
