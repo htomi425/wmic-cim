@@ -49,14 +49,26 @@ function Get-NoteProperty {
 
 function ConvertTo-WmicList {
     param($Value)
-    if ($null -eq $Value) { return @() }
-    if ($Value -is [string]) { return @($Value) }
-    return @($Value)
+    $out = New-Object System.Collections.Generic.List[object]
+    if ($null -eq $Value) { return $out }
+    if ($Value -is [string]) {
+        $out.Add($Value)
+        return $out
+    }
+    if ($Value -is [System.Collections.IList]) {
+        foreach ($item in $Value) { $out.Add($item) }
+        return $out
+    }
+    $out.Add($Value)
+    return $out
 }
 
 function Get-WmicLen {
     param($Value)
-    return (ConvertTo-WmicList $Value).Count
+    if ($null -eq $Value) { return 0 }
+    if ($Value -is [string]) { return 1 }
+    if ($Value -is [System.Collections.ICollection]) { return [int]$Value.Count }
+    return 1
 }
 
 function Get-WmicAliasDocument {
@@ -356,22 +368,29 @@ function Parse-WmicLine {
             $rest.Add($tokens[$i])
             $i++
         }
-        $restArr = $rest.ToArray()
         switch ($parsed.Verb) {
-            'GET' { $parsed.Properties = @(Split-WmicCsv $restArr) }
+            'GET' { $parsed.Properties = Split-WmicCsv $rest }
             'LIST' {
-                if ($restArr.Count -gt 0) {
-                    $parsed.ListStyle = $restArr[0].ToUpperInvariant()
-                    if ($restArr.Count -gt 1) { $parsed.Properties = @(Split-WmicCsv $restArr[1..($restArr.Count - 1)]) }
+                if ($rest.Count -gt 0) {
+                    $parsed.ListStyle = $rest[0].ToUpperInvariant()
+                    if ($rest.Count -gt 1) {
+                        $tail = New-Object System.Collections.Generic.List[string]
+                        for ($j = 1; $j -lt $rest.Count; $j++) { [void]$tail.Add($rest[$j]) }
+                        $parsed.Properties = Split-WmicCsv $tail
+                    }
                 }
                 else { $parsed.ListStyle = 'FULL' }
             }
-            'SET' { $parsed.SetPairs = @(Parse-WmicPairs $restArr) }
-            'CREATE' { $parsed.CreatePairs = @(Parse-WmicPairs $restArr) }
+            'SET' { $parsed.SetPairs = @(Parse-WmicPairs $rest) }
+            'CREATE' { $parsed.CreatePairs = @(Parse-WmicPairs $rest) }
             'CALL' {
-                if ($restArr.Count -gt 0) {
-                    $parsed.CallMethod = $restArr[0]
-                    if ($restArr.Count -gt 1) { $parsed.CallArgs = @(Split-WmicCsv $restArr[1..($restArr.Count - 1)]) }
+                if ($rest.Count -gt 0) {
+                    $parsed.CallMethod = $rest[0]
+                    if ($rest.Count -gt 1) {
+                        $tail = New-Object System.Collections.Generic.List[string]
+                        for ($j = 1; $j -lt $rest.Count; $j++) { [void]$tail.Add($rest[$j]) }
+                        $parsed.CallArgs = Split-WmicCsv $tail
+                    }
                 }
             }
         }
@@ -435,14 +454,15 @@ function Resolve-WmicTarget {
 
 function Get-WmicSelectProperties {
     param($Parsed, $Info)
-    if ((Get-WmicLen $Parsed.Properties) -gt 0) { return @(ConvertTo-WmicList $Parsed.Properties) }
+    if ((Get-WmicLen $Parsed.Properties) -gt 0) { return (ConvertTo-WmicList $Parsed.Properties) }
     if ($Parsed.Verb -eq 'LIST' -and $Parsed.ListStyle -eq 'BRIEF' -and $Info) {
-        return @($Info.brief)
+        return (ConvertTo-WmicList (Get-NoteProperty $Info 'brief'))
     }
     if ($Parsed.Verb -eq 'LIST' -and ($Parsed.ListStyle -eq 'FULL' -or -not $Parsed.ListStyle)) {
         return $null
     }
-    if ($Info -and $Info.defaultGet) { return @($Info.defaultGet) }
+    $dg = Get-NoteProperty $Info 'defaultGet'
+    if ($null -ne $dg) { return (ConvertTo-WmicList $dg) }
     return $null
 }
 
@@ -704,47 +724,48 @@ function ConvertTo-WmicValue {
 }
 
 function Resolve-WmicPropertyCase {
-    param([string[]]$Names, $Objects)
-    $list = @(ConvertTo-WmicList $Names)
-    if ((Get-WmicLen $list) -eq 0) { return $Names }
+    param($Names, $Objects)
+    $list = ConvertTo-WmicList $Names
+    if ($list.Count -eq 0) { return $list }
     $sample = $null
-    foreach ($o in @(ConvertTo-WmicList $Objects)) { $sample = $o; break }
+    foreach ($o in (ConvertTo-WmicList $Objects)) { $sample = $o; break }
     if ($null -eq $sample) { return $list }
     $out = New-Object System.Collections.Generic.List[string]
     foreach ($n in $list) {
-        $exact = $sample.PSObject.Properties[$n]
+        $key = [string]$n
+        $exact = $sample.PSObject.Properties[$key]
         if ($exact) { $out.Add($exact.Name); continue }
-        $hit = $sample.PSObject.Properties | Where-Object { $_.Name -ieq $n } | Select-Object -First 1
-        if ($hit) { $out.Add($hit.Name) } else { $out.Add($n) }
+        $hit = $sample.PSObject.Properties | Where-Object { $_.Name -ieq $key } | Select-Object -First 1
+        if ($hit) { $out.Add($hit.Name) } else { $out.Add($key) }
     }
     return $out
 }
 
 function Format-WmicTable {
     param($Objects, $Properties)
-    $rows = @(ConvertTo-WmicList $Objects)
+    $rows = ConvertTo-WmicList $Objects
     if ($rows.Count -eq 0) { return }
-    $Properties = @(ConvertTo-WmicList $Properties)
-    if ((Get-WmicLen $Properties) -eq 0) {
-        $Properties = @($rows[0].PSObject.Properties | Where-Object { $_.Name -notmatch '^Cim' } | Select-Object -ExpandProperty Name)
+    $Properties = ConvertTo-WmicList $Properties
+    if ($Properties.Count -eq 0) {
+        $Properties = ConvertTo-WmicList @($rows[0].PSObject.Properties | Where-Object { $_.Name -notmatch '^Cim' } | Select-Object -ExpandProperty Name)
     }
-    $stringRows = @()
+    $stringRows = New-Object System.Collections.Generic.List[object]
     foreach ($row in $rows) {
-        $cells = @()
+        $cells = New-Object System.Collections.Generic.List[string]
         foreach ($c in $Properties) {
-            $cells += (ConvertTo-WmicValue $row.$c)
+            $cells.Add((ConvertTo-WmicValue $row.$c))
         }
-        $stringRows += ,$cells
+        $stringRows.Add($cells)
     }
-    $widths = @()
+    $widths = New-Object System.Collections.Generic.List[int]
     for ($i = 0; $i -lt $Properties.Count; $i++) {
-        $w = $Properties[$i].Length
+        $w = ([string]$Properties[$i]).Length
         foreach ($r in $stringRows) {
             if ($r[$i].Length -gt $w) { $w = $r[$i].Length }
         }
-        $widths += $w
+        $widths.Add($w)
     }
-    $header = for ($i = 0; $i -lt $Properties.Count; $i++) { $Properties[$i].PadRight($widths[$i]) }
+    $header = for ($i = 0; $i -lt $Properties.Count; $i++) { ([string]$Properties[$i]).PadRight($widths[$i]) }
     Write-Output ($header -join '  ')
     foreach ($r in $stringRows) {
         $line = for ($i = 0; $i -lt $Properties.Count; $i++) { $r[$i].PadRight($widths[$i]) }
@@ -753,40 +774,48 @@ function Format-WmicTable {
 }
 
 function Format-WmicList {
-    param($Objects, [string[]]$Properties)
-    $rows = @($Objects)
+    param($Objects, $Properties)
+    $rows = ConvertTo-WmicList $Objects
     $first = $true
     foreach ($row in $rows) {
         if (-not $first) { Write-Output '' }
         $first = $false
-        $props = $Properties
-        if (-not $props) {
-            $props = @($row.PSObject.Properties | Where-Object { $_.Name -notmatch '^Cim' } | Select-Object -ExpandProperty Name)
+        $props = ConvertTo-WmicList $Properties
+        if ($props.Count -eq 0) {
+            $props = ConvertTo-WmicList @($row.PSObject.Properties | Where-Object { $_.Name -notmatch '^Cim' } | Select-Object -ExpandProperty Name)
         }
-        $keyWidth = ($props | Measure-Object -Maximum -Property Length).Maximum
+        $keyWidth = 0
         foreach ($c in $props) {
-            Write-Output ('{0}={1}' -f $c.PadRight($keyWidth), (ConvertTo-WmicValue $row.$c))
+            $n = ([string]$c).Length
+            if ($n -gt $keyWidth) { $keyWidth = $n }
+        }
+        foreach ($c in $props) {
+            Write-Output ('{0}={1}' -f ([string]$c).PadRight($keyWidth), (ConvertTo-WmicValue $row.$c))
         }
     }
 }
 
 function Write-WmicFormatted {
-    param($Parsed, $Objects, [string[]]$Properties)
+    param($Parsed, $Objects, $Properties)
     $fmt = Resolve-WmicFormat $Parsed
-    $rows = @($Objects)
     switch ($fmt) {
         'CSV' {
-            if ($Properties) { $rows | Select-Object $Properties | ConvertTo-Csv -NoTypeInformation }
+            $rows = ConvertTo-WmicList $Objects
+            $propNames = ConvertTo-WmicList $Properties
+            if ($propNames.Count -gt 0) { $rows | Select-Object -Property ([string[]]$propNames.ToArray()) | ConvertTo-Csv -NoTypeInformation }
             else { $rows | ConvertTo-Csv -NoTypeInformation }
         }
         'XML' {
-            if ($Properties) { $rows | Select-Object $Properties | ConvertTo-Xml -As String }
+            $rows = ConvertTo-WmicList $Objects
+            $propNames = ConvertTo-WmicList $Properties
+            if ($propNames.Count -gt 0) { $rows | Select-Object -Property ([string[]]$propNames.ToArray()) | ConvertTo-Xml -As String }
             else { $rows | ConvertTo-Xml -As String }
         }
-        'LIST' { Format-WmicList $rows $Properties }
-        'VALUE' { Format-WmicList $rows $Properties }
-        default { Format-WmicTable $rows $Properties }
+        'LIST' { Format-WmicList $Objects $Properties }
+        'VALUE' { Format-WmicList $Objects $Properties }
+        default { Format-WmicTable $Objects $Properties }
     }
+}
 }
 
 function Get-CimMethodMap {
@@ -977,8 +1006,10 @@ function Invoke-WmicParsed {
             $objects = foreach ($p in $paramSets) { Get-CimInstance @p }
             $props = Get-WmicSelectProperties $Parsed $info
             if ((Get-WmicLen $props) -gt 0) {
-                $props = @(ConvertTo-WmicList (Resolve-WmicPropertyCase $props $objects))
-                $objects = $objects | Select-Object $props
+                $props = Resolve-WmicPropertyCase $props $objects
+                $propNames = New-Object string[] $props.Count
+                for ($i = 0; $i -lt $props.Count; $i++) { $propNames[$i] = [string]$props[$i] }
+                $objects = $objects | Select-Object -Property $propNames
             }
             Write-WmicFormatted $Parsed $objects $props
         }
