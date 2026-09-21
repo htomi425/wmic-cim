@@ -27,6 +27,8 @@ wmic [スイッチ] <エイリアス | PATH クラス> [where <WQL>] <動詞> [�
 
 引数なし起動は対話モード。プロンプトは `wmic:root\cimv2>`。`quit` / `exit` / `q` で終了。
 
+`/?` / `-?` / `/help` は公式 WMIC のヘルプ複製ではなく、よく使う例・スイッチ・エイリアス一覧です。エイリアス個別は `wmic os /?` です。
+
 ### 2.1 スイッチ
 
 | スイッチ | 意味 | WMIC 互換 |
@@ -154,7 +156,7 @@ New-CimSessionOption -Protocol Dcom -Impersonation Impersonate -PacketPrivacy
 
 | `/FORMAT` / 動詞 | 出力 |
 | --- | --- |
-| 省略時 GET | 空白区切りテーブル（WMIC に近い） |
+| 省略時 GET | 空白区切りテーブル。列名は CIM の正式名 (`caption` → `Caption`) |
 | `LIST BRIEF` | テーブル。列はエイリアスの BRIEF（公式 WMIC は BRIEF に TABLE スタイルシートを使う） |
 | `LIST` / `LIST FULL` / `VALUE` | `Name=Value` |
 | `/FORMAT:LIST` を BRIEF に付けたとき | `Name=Value`（公式と同じ上書き） |

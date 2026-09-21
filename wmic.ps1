@@ -24,7 +24,6 @@
   Project: https://github.com/htomi425/wmic-cim
   Spec:    SPEC.md  ( /NODE プロトコル、拒否条件、出力の契約 )
 #>
-[CmdletBinding()]
 param(
     [Parameter(ValueFromRemainingArguments = $true)]
     [string[]]$WmicArgs
@@ -46,6 +45,18 @@ function Get-NoteProperty {
     $p = $Object.PSObject.Properties[$Name]
     if ($p) { return $p.Value }
     return $null
+}
+
+function ConvertTo-WmicList {
+    param($Value)
+    if ($null -eq $Value) { return @() }
+    if ($Value -is [string]) { return @($Value) }
+    return @($Value)
+}
+
+function Get-WmicLen {
+    param($Value)
+    return (ConvertTo-WmicList $Value).Count
 }
 
 function Get-WmicAliasDocument {
@@ -221,6 +232,11 @@ function Parse-WmicPairs {
 
 function Parse-WmicSwitchToken {
     param([string]$Token)
+    if ([string]::IsNullOrWhiteSpace($Token)) { return $null }
+    $t = $Token.Trim()
+    if ($t -eq '/?' -or $t -eq '-?' -or $t -eq '-help' -or $t -eq '/help') {
+        return @{ Name = '?'; Value = $true }
+    }
     if ($Token -notmatch '^/([A-Za-z][A-Za-z0-9]*)(?::(.*))?$') { return $null }
     $name = $Matches[1].ToLowerInvariant()
     if ($null -eq $Matches[2]) {
@@ -419,7 +435,7 @@ function Resolve-WmicTarget {
 
 function Get-WmicSelectProperties {
     param($Parsed, $Info)
-    if ($Parsed.Properties -and $Parsed.Properties.Count -gt 0) { return @($Parsed.Properties) }
+    if ((Get-WmicLen $Parsed.Properties) -gt 0) { return @(ConvertTo-WmicList $Parsed.Properties) }
     if ($Parsed.Verb -eq 'LIST' -and $Parsed.ListStyle -eq 'BRIEF' -and $Info) {
         return @($Info.brief)
     }
@@ -687,11 +703,29 @@ function ConvertTo-WmicValue {
     return [string]$Value
 }
 
+function Resolve-WmicPropertyCase {
+    param([string[]]$Names, $Objects)
+    $list = @(ConvertTo-WmicList $Names)
+    if ((Get-WmicLen $list) -eq 0) { return $Names }
+    $sample = $null
+    foreach ($o in @(ConvertTo-WmicList $Objects)) { $sample = $o; break }
+    if ($null -eq $sample) { return $list }
+    $out = New-Object System.Collections.Generic.List[string]
+    foreach ($n in $list) {
+        $exact = $sample.PSObject.Properties[$n]
+        if ($exact) { $out.Add($exact.Name); continue }
+        $hit = $sample.PSObject.Properties | Where-Object { $_.Name -ieq $n } | Select-Object -First 1
+        if ($hit) { $out.Add($hit.Name) } else { $out.Add($n) }
+    }
+    return $out
+}
+
 function Format-WmicTable {
-    param($Objects, [string[]]$Properties)
-    $rows = @($Objects)
+    param($Objects, $Properties)
+    $rows = @(ConvertTo-WmicList $Objects)
     if ($rows.Count -eq 0) { return }
-    if (-not $Properties) {
+    $Properties = @(ConvertTo-WmicList $Properties)
+    if ((Get-WmicLen $Properties) -eq 0) {
         $Properties = @($rows[0].PSObject.Properties | Where-Object { $_.Name -notmatch '^Cim' } | Select-Object -ExpandProperty Name)
     }
     $stringRows = @()
@@ -774,7 +808,7 @@ function Get-CimMethodMap {
 function ConvertTo-MethodArguments {
     param($MethodMeta, [string[]]$CallArgs, $Info)
     $hash = @{}
-    if (-not $CallArgs -or $CallArgs.Count -eq 0) { return $hash }
+    if ((Get-WmicLen $CallArgs) -eq 0) { return $hash }
     $names = @()
     if ($MethodMeta) {
         foreach ($p in $MethodMeta.Parameters) {
@@ -789,9 +823,10 @@ function ConvertTo-MethodArguments {
     if ($names.Count -eq 0 -and $Info -and $Info.methods -and $CallArgs) {
         # caller may pass method name separately; handled in Invoke
     }
-    for ($i = 0; $i -lt $CallArgs.Count; $i++) {
-        if ($i -lt $names.Count) { $hash[$names[$i]] = $CallArgs[$i] }
-        else { $hash["Arg$i"] = $CallArgs[$i] }
+    $argArr = @(ConvertTo-WmicList $CallArgs)
+    for ($i = 0; $i -lt $argArr.Count; $i++) {
+        if ($i -lt $names.Count) { $hash[$names[$i]] = $argArr[$i] }
+        else { $hash["Arg$i"] = $argArr[$i] }
     }
     return $hash
 }
@@ -799,53 +834,98 @@ function ConvertTo-MethodArguments {
 function Write-WmicHelp {
     param($Parsed, $Info)
     if ($Info) {
-        Write-Output ("{0}  ->  {1}" -f $(if ($Parsed.Alias) { $Parsed.Alias.ToUpperInvariant() } else { $Info.className }), $Info.className)
-        if ($Info.brief) { Write-Output ("BRIEF: {0}" -f ($Info.brief -join ', ')) }
-        if ($Info.defaultGet) { Write-Output ("GET:   {0}" -f ($Info.defaultGet -join ', ')) }
-        if ($Info.methods) {
-            Write-Output 'METHODS:'
-            foreach ($m in @($Info.methods)) {
-                $args = @($m.inParams | ForEach-Object { $_.name }) -join ', '
-                Write-Output ("  {0}({1})  {2}" -f $m.name, $args, $m.description)
+        $aliasName = $Info.className
+        if ($Parsed.Alias) { $aliasName = $Parsed.Alias.ToUpperInvariant() }
+        $ns = Get-NoteProperty $Info 'namespace'
+        if (-not $ns) { $ns = $script:DefaultNamespace }
+        Write-Output ('{0}  →  {1}  ({2})' -f $aliasName, $Info.className, $ns)
+        $caution = Get-NoteProperty $Info 'caution'
+        if ($caution) { Write-Output ('注意: {0}' -f $caution) }
+        $brief = Get-NoteProperty $Info 'brief'
+        if ($brief) { Write-Output ('LIST BRIEF 列: {0}' -f ((ConvertTo-WmicList $brief) -join ', ')) }
+        $dg = Get-NoteProperty $Info 'defaultGet'
+        if ($dg) { Write-Output ('GET 既定列:    {0}' -f ((ConvertTo-WmicList $dg) -join ', ')) }
+        $methods = Get-NoteProperty $Info 'methods'
+        if ($methods) {
+            Write-Output 'メソッド:'
+            foreach ($m in @(ConvertTo-WmicList $methods)) {
+                if ($null -eq $m) { continue }
+                $mName = Get-NoteProperty $m 'name'
+                $desc = Get-NoteProperty $m 'description'
+                if (-not $desc) { $desc = Get-NoteProperty $m 'descriptionJa' }
+                $argNames = New-Object System.Collections.Generic.List[string]
+                foreach ($p in @(ConvertTo-WmicList (Get-NoteProperty $m 'inParams'))) {
+                    if ($null -eq $p) { continue }
+                    $pn = Get-NoteProperty $p 'name'
+                    if ($pn) { $argNames.Add($pn) }
+                }
+                Write-Output ('  {0}({1})  {2}' -f $mName, ($argNames -join ', '), $desc)
             }
         }
+        Write-Output ''
+        Write-Output '例:'
+        $exAlias = 'PATH ' + $Info.className
+        if ($Parsed.Alias) { $exAlias = $Parsed.Alias.ToLowerInvariant() }
+        Write-Output ('  wmic {0} list brief' -f $exAlias)
+        Write-Output ('  wmic {0} get /?' -f $exAlias)
+        Write-Output ('  wmic {0} /?' -f $exAlias)
         return
     }
-    Write-Output @'
-CIMIC — WMIC compatibility wrapper (CIM)
 
-Usage:
-  wmic [switches] <alias | PATH class> [where <expr>] <verb> [args]
+    Write-Output 'CIMIC — wmic 互換ラッパー (CIM: Get-CimInstance / Invoke-CimMethod)'
+    Write-Output '公式 WMIC のヘルプ複製ではなく、実際に打つコマンド寄りです。'
+    Write-Output '仕様: SPEC.md    https://github.com/htomi425/wmic-cim'
+    Write-Output ''
+    Write-Output '使い方'
+    Write-Output '  wmic [スイッチ] <エイリアス | PATH クラス> [where <式>] <動詞> [引数]'
+    Write-Output '  引数なしで起動すると対話プロンプト (quit で終了)'
+    Write-Output ''
+    Write-Output 'よく使う例'
+    Write-Output '  wmic os get caption,version'
+    Write-Output '  wmic cpu list brief'
+    Write-Output '  wmic process where name="explorer.exe" get name,processid'
+    Write-Output '  wmic path Win32_OperatingSystem get caption'
+    Write-Output '  wmic /node:HOST os get caption'
+    Write-Output '  wmic /protocol:dcom /node:HOST os get caption'
+    Write-Output ''
+    Write-Output 'スイッチ'
+    Write-Output '  /NODE:host[,host2]     リモート。既定は WS-Man 5秒、接続失敗時だけ DCOM'
+    Write-Output '  /PROTOCOL:AUTO|WSMAN|DCOM   /NODE のプロトコル (環境変数 WMIC_PROTOCOL でも可)'
+    Write-Output '  /NAMESPACE:root\cimv2  名前空間'
+    Write-Output '  /USER:name             資格情報。/NODE と一緒に'
+    Write-Output '  /FORMAT:TABLE|LIST|CSV|VALUE|XML'
+    Write-Output '  /OUTPUT:file  /APPEND:file'
+    Write-Output ''
+    Write-Output '動詞'
+    Write-Output '  GET [列,...]     テーブル。列名は CIM の正式名 (Caption など)'
+    Write-Output '  LIST BRIEF       テーブル。エイリアスの主要列'
+    Write-Output '  LIST FULL        Name=Value で全列'
+    Write-Output '  SET / CALL / CREATE / DELETE     DELETE は WHERE 必須'
+    Write-Output ''
+    Write-Output 'エイリアス  (詳細は  wmic os /?  /  一覧は  wmic alias)'
 
-Switches:
-  /NODE:host[,host2]     リモート。既定は WS-Man、接続失敗時だけ DCOM
-  /PROTOCOL:AUTO|WSMAN|DCOM
-                         /NODE のプロトコル（CIMIC 拡張。環境変数 WMIC_PROTOCOL でも可）
-  /NAMESPACE:root\cimv2  Namespace
-  /USER:name             Credential（/NODE と一緒に使う）
-  /PASSWORD:secret       (plain; prefer /USER alone for a prompt)
-  /FORMAT:TABLE|LIST|CSV|VALUE|XML
-  /OUTPUT:file           Write stdout to file
-  /APPEND:file           Append stdout to file
-
-Verbs:
-  GET [prop[,prop...]]
-  LIST [BRIEF|FULL]
-  SET name=value[,...]
-  CALL method [args]
-  CREATE name=value[,...]
-  DELETE
-  ASSOCIATORS
-
-Examples:
-  wmic os get caption,version,buildnumber
-  wmic process where name="explorer.exe" get processid,workingsetsize
-  wmic service where startmode="auto" get name,state
-  wmic path Win32_Process where processid=4 get name
-  wmic process call create "notepad.exe"
-  wmic /node:HOST os get caption
-  wmic /protocol:dcom /node:HOST os get caption
-'@
+    $doc = Get-WmicAliasDocument
+    $names = @($doc.PSObject.Properties | ForEach-Object { $_.Name }) | Sort-Object
+    $line = ''
+    foreach ($n in $names) {
+        $add = $n
+        if ($line) {
+            if (($line.Length + 2 + $add.Length) -gt 78) {
+                Write-Output $line
+                $line = '  ' + $add
+            }
+            else {
+                $line = $line + '  ' + $add
+            }
+        }
+        else {
+            $line = '  ' + $add
+        }
+    }
+    if ($line) { Write-Output $line }
+    Write-Output ''
+    Write-Output '拒否するもの: WHERE 無し DELETE、DATAFILE / FSDIR / NTEVENT の全件'
+    Write-Output 'エイリアス詳細:  wmic cpu /?     動詞の補足:  wmic process call /?'
 }
 
 function Invoke-WmicParsed {
@@ -896,7 +976,10 @@ function Invoke-WmicParsed {
         { $_ -eq 'GET' -or $_ -eq 'LIST' } {
             $objects = foreach ($p in $paramSets) { Get-CimInstance @p }
             $props = Get-WmicSelectProperties $Parsed $info
-            if ($props) { $objects = $objects | Select-Object $props }
+            if ((Get-WmicLen $props) -gt 0) {
+                $props = @(ConvertTo-WmicList (Resolve-WmicPropertyCase $props $objects))
+                $objects = $objects | Select-Object $props
+            }
             Write-WmicFormatted $Parsed $objects $props
         }
         'DELETE' {
@@ -906,13 +989,13 @@ function Invoke-WmicParsed {
             foreach ($p in $paramSets) { Get-CimInstance @p | Remove-CimInstance }
         }
         'SET' {
-            if (-not $Parsed.SetPairs -or $Parsed.SetPairs.Count -eq 0) { throw 'SET には name=value が必要です。' }
+            if ((Get-WmicLen $Parsed.SetPairs) -eq 0) { throw 'SET には name=value が必要です。' }
             $hash = @{}
             foreach ($pair in $Parsed.SetPairs) { $hash[$pair.Name] = $pair.Value }
             foreach ($p in $paramSets) { Get-CimInstance @p | Set-CimInstance -Property $hash }
         }
         'CREATE' {
-            if (-not $Parsed.CreatePairs -or $Parsed.CreatePairs.Count -eq 0) { throw 'CREATE には name=value が必要です。' }
+            if ((Get-WmicLen $Parsed.CreatePairs) -eq 0) { throw 'CREATE には name=value が必要です。' }
             $hash = @{}
             foreach ($pair in $Parsed.CreatePairs) { $hash[$pair.Name] = $pair.Value }
             foreach ($p in $paramSets) {
@@ -943,8 +1026,9 @@ function Invoke-WmicParsed {
                 $hit = @($info.methods | Where-Object { $_.name -ieq $methodName })
                 if ($hit.Count -gt 0 -and $hit[0].inParams) {
                     $names = @($hit[0].inParams | ForEach-Object { $_.name })
-                    for ($i = 0; $i -lt $Parsed.CallArgs.Count; $i++) {
-                        if ($i -lt $names.Count) { $argHash[$names[$i]] = $Parsed.CallArgs[$i] }
+                    $callArgs = @(ConvertTo-WmicList $Parsed.CallArgs)
+                    for ($i = 0; $i -lt $callArgs.Count; $i++) {
+                        if ($i -lt $names.Count) { $argHash[$names[$i]] = $callArgs[$i] }
                     }
                 }
             }
@@ -1037,12 +1121,23 @@ catch {
     exit 1
 }
 
-if (-not $WmicArgs -or $WmicArgs.Count -eq 0) {
+if ($WmicArgs -is [string]) {
+    if ([string]::IsNullOrWhiteSpace($WmicArgs)) { $argList = @() }
+    else { $argList = @([string]$WmicArgs) }
+}
+elseif ($null -eq $WmicArgs) {
+    $argList = @()
+}
+else {
+    $argList = @($WmicArgs | ForEach-Object { $_ } | Where-Object { $_ -ne $null -and "$_" -ne '' })
+}
+
+if ((Get-WmicLen $argList) -eq 0) {
     Start-WmicInteractive
     exit 0
 }
 
-$joined = ($WmicArgs -join ' ')
+$joined = ($argList -join ' ')
 try {
     Invoke-WmicLine $joined
 }
