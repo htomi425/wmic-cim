@@ -105,16 +105,92 @@ function Get-WmicTokens {
     return $tokens
 }
 
+function Convert-WqlLiteral {
+    param([string]$Val)
+    $v = $Val.Trim()
+    if ($v.Length -ge 2 -and $v.StartsWith("'") -and $v.EndsWith("'")) { return $v }
+    if ($v.Length -ge 2 -and $v.StartsWith('"') -and $v.EndsWith('"')) {
+        return ("'" + $v.Substring(1, $v.Length - 2).Replace("'", "''") + "'")
+    }
+    if ($v -match '^(TRUE|FALSE|NULL)$') { return $v }
+    if ($v -match '^[+-]?\d+$') { return $v }
+    return ("'" + $v.Replace("'", "''") + "'")
+}
+
+function Split-WqlTop {
+    param([string]$Expr, [string]$Op)
+    $parts = New-Object System.Collections.Generic.List[string]
+    $buf = New-Object System.Text.StringBuilder
+    $depth = 0
+    $i = 0
+    $s = $Expr
+    $upper = $s.ToUpperInvariant()
+    $opLen = $Op.Length
+    while ($i -lt $s.Length) {
+        $ch = $s[$i]
+        if ($ch -eq [char]40) { $depth++; [void]$buf.Append($ch); $i++; continue }
+        if ($ch -eq [char]41) { $depth--; [void]$buf.Append($ch); $i++; continue }
+        if ($ch -eq [char]39 -or $ch -eq [char]34) {
+            $q = $ch
+            [void]$buf.Append($ch)
+            $i++
+            while ($i -lt $s.Length -and $s[$i] -ne $q) {
+                [void]$buf.Append($s[$i])
+                $i++
+            }
+            if ($i -lt $s.Length) { [void]$buf.Append($s[$i]); $i++ }
+            continue
+        }
+        if ($depth -eq 0 -and $i + $opLen -le $s.Length -and $upper.Substring($i, $opLen) -eq $Op) {
+            $beforeOk = ($i -eq 0) -or [char]::IsWhiteSpace($s[$i - 1])
+            $afterOk = ($i + $opLen -ge $s.Length) -or [char]::IsWhiteSpace($s[$i + $opLen])
+            if ($beforeOk -and $afterOk) {
+                $parts.Add($buf.ToString().Trim())
+                [void]$buf.Clear()
+                $i += $opLen
+                continue
+            }
+        }
+        [void]$buf.Append($ch)
+        $i++
+    }
+    $tail = $buf.ToString().Trim()
+    if ($tail) { $parts.Add($tail) }
+    return $parts
+}
+
+function Convert-WqlExpr {
+    param([string]$Expr)
+    $e = $Expr.Trim()
+    if (-not $e) { return $e }
+    if ($e.StartsWith('(') -and $e.EndsWith(')') -and $e.Length -ge 2) {
+        return ('(' + (Convert-WqlExpr $e.Substring(1, $e.Length - 2)) + ')')
+    }
+    $orParts = @(Split-WqlTop $e 'OR')
+    if ($orParts.Count -gt 1) {
+        return (($orParts | ForEach-Object { Convert-WqlExpr $_ }) -join ' OR ')
+    }
+    $andParts = @(Split-WqlTop $e 'AND')
+    if ($andParts.Count -gt 1) {
+        return (($andParts | ForEach-Object { Convert-WqlExpr $_ }) -join ' AND ')
+    }
+    $m = [regex]::Match($e, '^(?i)([A-Za-z_][\w.]*)\s*(<>|!=|<=|>=|=|<|>|LIKE)\s*(.*)$')
+    if (-not $m.Success) { return $e }
+    return ($m.Groups[1].Value + ' ' + $m.Groups[2].Value + ' ' + (Convert-WqlLiteral $m.Groups[3].Value))
+}
+
 function ConvertTo-WqlFilter {
     param([string]$Where)
     if ([string]::IsNullOrWhiteSpace($Where)) { return $null }
     $s = $Where.Trim()
-    if ($s.StartsWith('(') -and $s.EndsWith(')')) {
+    if ($s.StartsWith('(') -and $s.EndsWith(')') -and $s.Length -ge 2) {
         $s = $s.Substring(1, $s.Length - 2).Trim()
     }
+    # WMIC allows name="explorer.exe". cmd/pwsh often strip those quotes, leaving a bare
+    # token that WQL rejects. Convert remaining doubles, then quote bare string values.
     $s = [regex]::Replace($s, '"([^"]*)"', { param($m) "'" + ($m.Groups[1].Value.Replace("'", "''")) + "'" })
     $s = [regex]::Replace($s, '\s*==\s*', '=')
-    return $s
+    return (Convert-WqlExpr $s)
 }
 
 function Split-WmicCsv {

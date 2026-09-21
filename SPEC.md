@@ -58,6 +58,8 @@ wmic [スイッチ] <エイリアス | PATH クラス> [where <WQL>] <動詞> [�
 
 `PATH Win32_Foo` は未登録クラスでも通ります。エイリアス表は `aliases.json` です。
 
+WHERE の文字列は WQL では単引用です。公式 WMIC の `name="explorer.exe"` は cmd が引用を剥がして `name=explorer.exe` になることが多いので、ラッパーが `'explorer.exe'` を補います。数字・TRUE/FALSE/NULL はそのままです。
+
 ## 3. `/NODE` とプロトコル
 
 ここが旧 WMIC（常に DCOM）と違う点です。クライアントは CIM のまま、セッションの作り方だけ変えます。`-ComputerName` は使いません（CIM ではそれが常に WS-Man になるため）。
