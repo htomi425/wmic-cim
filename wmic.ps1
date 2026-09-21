@@ -22,7 +22,7 @@
 
 .NOTES
   Project: https://github.com/htomi425/wmic-cim
-  Spec:    SPEC.md  ( /NODE プロトコル、拒否条件、出力の契約 )
+  Spec:    SPEC.md  (受け付ける構文、拒否条件、/NODE の動き)
 #>
 param(
     [Parameter(ValueFromRemainingArguments = $true)]
@@ -50,17 +50,17 @@ function Get-NoteProperty {
 function ConvertTo-WmicList {
     param($Value)
     $out = New-Object System.Collections.Generic.List[object]
-    if ($null -eq $Value) { return $out }
+    if ($null -eq $Value) { return , $out }
     if ($Value -is [string]) {
         $out.Add($Value)
-        return $out
+        return , $out
     }
     if ($Value -is [System.Collections.IList]) {
         foreach ($item in $Value) { $out.Add($item) }
-        return $out
+        return , $out
     }
     $out.Add($Value)
-    return $out
+    return , $out
 }
 
 function Get-WmicLen {
@@ -99,7 +99,7 @@ function Get-WmicAliasInfo {
 function Get-WmicTokens {
     param([string]$Line)
     $tokens = New-Object System.Collections.Generic.List[string]
-    if ([string]::IsNullOrWhiteSpace($Line)) { return $tokens }
+    if ([string]::IsNullOrWhiteSpace($Line)) { return , $tokens }
     $i = 0
     $s = $Line
     while ($i -lt $s.Length) {
@@ -125,7 +125,7 @@ function Get-WmicTokens {
         }
         $tokens.Add($buf.ToString())
     }
-    return $tokens
+    return , $tokens
 }
 
 function Convert-WqlLiteral {
@@ -225,7 +225,7 @@ function Split-WmicCsv {
             if ($t) { $out.Add($t) }
         }
     }
-    return $out
+    return , $out
 }
 
 function Parse-WmicPairs {
@@ -454,15 +454,15 @@ function Resolve-WmicTarget {
 
 function Get-WmicSelectProperties {
     param($Parsed, $Info)
-    if ((Get-WmicLen $Parsed.Properties) -gt 0) { return (ConvertTo-WmicList $Parsed.Properties) }
+    if ((Get-WmicLen $Parsed.Properties) -gt 0) { return , (ConvertTo-WmicList $Parsed.Properties) }
     if ($Parsed.Verb -eq 'LIST' -and $Parsed.ListStyle -eq 'BRIEF' -and $Info) {
-        return (ConvertTo-WmicList (Get-NoteProperty $Info 'brief'))
+        return , (ConvertTo-WmicList (Get-NoteProperty $Info 'brief'))
     }
     if ($Parsed.Verb -eq 'LIST' -and ($Parsed.ListStyle -eq 'FULL' -or -not $Parsed.ListStyle)) {
         return $null
     }
     $dg = Get-NoteProperty $Info 'defaultGet'
-    if ($null -ne $dg) { return (ConvertTo-WmicList $dg) }
+    if ($null -ne $dg) { return , (ConvertTo-WmicList $dg) }
     return $null
 }
 
@@ -726,10 +726,10 @@ function ConvertTo-WmicValue {
 function Resolve-WmicPropertyCase {
     param($Names, $Objects)
     $list = ConvertTo-WmicList $Names
-    if ($list.Count -eq 0) { return $list }
+    if ($list.Count -eq 0) { return , $list }
     $sample = $null
     foreach ($o in (ConvertTo-WmicList $Objects)) { $sample = $o; break }
-    if ($null -eq $sample) { return $list }
+    if ($null -eq $sample) { return , $list }
     $out = New-Object System.Collections.Generic.List[string]
     foreach ($n in $list) {
         $key = [string]$n
@@ -738,7 +738,7 @@ function Resolve-WmicPropertyCase {
         $hit = $sample.PSObject.Properties | Where-Object { $_.Name -ieq $key } | Select-Object -First 1
         if ($hit) { $out.Add($hit.Name) } else { $out.Add($key) }
     }
-    return $out
+    return , $out
 }
 
 function Format-WmicTable {
@@ -883,7 +883,7 @@ function Write-WmicHelp {
         $ex = 'PATH ' + $Info.className
         if ($Parsed.Alias) { $ex = $Parsed.Alias.ToLowerInvariant() }
         Write-Output ('例: wmic {0} list brief' -f $ex)
-        Write-Output '契約は SPEC.md。カタログは aliases.json。'
+        Write-Output '仕様は SPEC.md。エイリアス定義は aliases.json。'
         return
     }
     $path = Join-Path $PSScriptRoot 'HELP.txt'

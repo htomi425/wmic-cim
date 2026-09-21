@@ -1,6 +1,6 @@
 # CIMIC 仕様
 
-WMIC コマンドラインを **CIM cmdlet** に通すラッパーの契約です。バックエンドは `Get-WmiObject` でも COM (`SWbemLocator`) でもなく、`Get-CimInstance` / `Invoke-CimMethod` などです。
+WMIC コマンドラインを **CIM cmdlet** に通すラッパーの仕様です。バックエンドは `Get-WmiObject` でも COM (`SWbemLocator`) でもなく、`Get-CimInstance` / `Invoke-CimMethod` などです。
 
 この文書が「何を受け、何を実行し、何を拒否するか」の正本です。未記載の挙動は未定義なので、必要なら issue にしてください。
 
@@ -27,7 +27,7 @@ wmic [スイッチ] <エイリアス | PATH クラス> [where <WQL>] <動詞> [�
 
 引数なし起動は対話モード。プロンプトは `wmic:root\cimv2>`。`quit` / `exit` / `q` で終了。
 
-`/?` は [HELP.txt](HELP.txt) を出すだけです。公式 WMIC のヘルプ複製でも SPEC の再掲でもありません。エイリアス個別 (`wmic os /?`) は `aliases.json` からクラス名と BRIEF 列だけ出します。契約は本ファイルが正本です。
+`/?` は [HELP.txt](HELP.txt) を出すだけです。公式 WMIC のヘルプ複製でも SPEC の再掲でもありません。エイリアス個別 (`wmic os /?`) は `aliases.json` からクラス名と BRIEF 列だけ出します。動きの正本はこのファイルです。
 
 ### 2.1 スイッチ
 

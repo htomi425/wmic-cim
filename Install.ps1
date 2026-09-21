@@ -4,21 +4,41 @@
   Install the WMIC → CIM wrapper onto the current user PATH.
 
 .DESCRIPTION
-  Copies wmic.ps1 / wmic.cmd / aliases.json to %LOCALAPPDATA%\wmic-cim
-  and prepends that directory to the user PATH. Also appends a Set-Alias
-  to the current user's PowerShell profile so `wmic` wins over a leftover
-  System32\wmic.exe inside PowerShell.
+  wmic.exe が無いときだけ入れます。ある環境では公式 WMIC を使えばよく、
+  このラッパーはコピーしません。
 
 .NOTES
   管理者権限は不要。アンインストールは Uninstall.ps1。
 #>
-[CmdletBinding()]
 param(
+    [switch]$Force,
     [switch]$AddProfileAlias
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+
+function Get-NativeWmic {
+    $candidates = @(
+        (Join-Path $env:SystemRoot 'System32\wbem\wmic.exe')
+        (Join-Path $env:SystemRoot 'Sysnative\wbem\wmic.exe')
+        (Join-Path $env:SystemRoot 'System32\wmic.exe')
+    )
+    foreach ($p in $candidates) {
+        if ($p -and (Test-Path -LiteralPath $p)) { return $p }
+    }
+    $cmd = Get-Command wmic.exe -ErrorAction SilentlyContinue
+    if ($cmd -and $cmd.Source -and ($cmd.Source -notmatch 'wmic-cim')) { return $cmd.Source }
+    return $null
+}
+
+$native = Get-NativeWmic
+if ($native -and -not $Force) {
+    Write-Host "wmic.exe があります: $native"
+    Write-Host '公式 WMIC が使えるので、このラッパーは入れません。'
+    Write-Host '無理に入れる場合だけ:  .\Install.ps1 -Force'
+    exit 0
+}
 
 $src = $PSScriptRoot
 $dest = Join-Path $env:LOCALAPPDATA 'wmic-cim'
@@ -38,20 +58,11 @@ $newPath = ($dest, $parts) -join ';'
 [Environment]::SetEnvironmentVariable('Path', $newPath, 'User')
 $env:Path = $dest + ';' + $env:Path
 
-$wantAlias = $AddProfileAlias
-if (-not $PSBoundParameters.ContainsKey('AddProfileAlias')) { $wantAlias = $true }
-
-if ($wantAlias) {
+if ($AddProfileAlias) {
     $profiles = @()
-    if ($PSVersionTable.PSVersion.Major -ge 6) {
-        $profiles += $PROFILE.CurrentUserAllHosts
-    }
-    else {
-        $profiles += $PROFILE
-    }
-    # Windows PowerShell 5.1 profile AND PowerShell 7 profile if present
     $profiles += Join-Path $HOME 'Documents\WindowsPowerShell\Microsoft.PowerShell_profile.ps1'
     $profiles += Join-Path $HOME 'Documents\PowerShell\Microsoft.PowerShell_profile.ps1'
+    if ($PROFILE) { $profiles += $PROFILE }
     $profiles = $profiles | Select-Object -Unique
 
     $aliasLine = 'Set-Alias -Name wmic -Value (Join-Path $env:LOCALAPPDATA ''wmic-cim\wmic.ps1'')'
@@ -70,9 +81,8 @@ if ($wantAlias) {
     }
 }
 
-$exe = Get-Command wmic.exe -ErrorAction SilentlyContinue
 Write-Host "Installed to $dest"
-Write-Host "User PATH updated. 新しいターミナルを開いて ``wmic os get caption`` を試してください。"
-if ($exe) {
-    Write-Warning "wmic.exe がまだあります: $($exe.Source). cmd.exe では .exe が .cmd より先に解決されます。PowerShell ではプロファイルの Set-Alias が優先されます。完全に差し替えるなら Windows の「WMIC」オプション機能を外してください。"
+Write-Host '新しいターミナルで  wmic os get caption  を試してください。'
+if ($native -and $Force) {
+    Write-Warning "wmic.exe が残っています: $native 。cmd では .exe が先に解決されます。"
 }

@@ -8,5 +8,5 @@ CIMIC — wmic 互換 (CIM)
 引数なしで対話。quit で終了。
 エイリアス一覧は  wmic alias
 個別は            wmic os /?
-契約の正本は      SPEC.md
+仕様は            SPEC.md
 https://github.com/htomi425/wmic-cim
