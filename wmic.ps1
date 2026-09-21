@@ -885,28 +885,51 @@ function Get-CimMethodMap {
     return $null
 }
 
+function ConvertTo-WmicCimArg {
+    param($Parameter, $Value)
+    if ($null -eq $Value) { return $null }
+    $t = [string]$Parameter.CimType
+    switch ($t) {
+        'String'  { return [string]$Value }
+        'Boolean' {
+            if ($Value -is [bool]) { return $Value }
+            return [bool]($Value.ToString() -match '^(1|true|TRUE)$')
+        }
+        'UInt8'   { return [byte]$Value }
+        'UInt16'  { return [uint16]$Value }
+        'UInt32'  { return [uint32]$Value }
+        'UInt64'  { return [uint64]$Value }
+        'SInt8'   { return [sbyte]$Value }
+        'SInt16'  { return [int16]$Value }
+        'SInt32'  { return [int]$Value }
+        'SInt64'  { return [long]$Value }
+        'Real32'  { return [single]$Value }
+        'Real64'  { return [double]$Value }
+        default   { return $Value }
+    }
+}
+
 function ConvertTo-MethodArguments {
-    param($MethodMeta, [string[]]$CallArgs, $Info)
+    param($MethodMeta, $CallArgs, $Info)
     $hash = @{}
-    if ((Get-WmicLen $CallArgs) -eq 0) { return $hash }
-    $names = @()
+    $argArr = ConvertTo-WmicList $CallArgs
+    if ($argArr.Count -eq 0) { return $hash }
+    $inParams = New-Object System.Collections.Generic.List[object]
     if ($MethodMeta) {
         foreach ($p in $MethodMeta.Parameters) {
             $qual = @($p.Qualifiers | ForEach-Object { $_.Name })
-            if ($qual -contains 'In' -or $qual -contains 'IN') { $names += $p.Name }
+            if ($qual -contains 'In' -or $qual -contains 'IN') { $inParams.Add($p) }
         }
     }
-    elseif ($Info -and $Info.methods) {
-        $listed = @($Info.methods | Where-Object { $_.name -ieq $MethodMeta })
-        # fallback handled below
-    }
-    if ($names.Count -eq 0 -and $Info -and $Info.methods -and $CallArgs) {
-        # caller may pass method name separately; handled in Invoke
-    }
-    $argArr = @(ConvertTo-WmicList $CallArgs)
     for ($i = 0; $i -lt $argArr.Count; $i++) {
-        if ($i -lt $names.Count) { $hash[$names[$i]] = $argArr[$i] }
-        else { $hash["Arg$i"] = $argArr[$i] }
+        $val = $argArr[$i]
+        if ($i -lt $inParams.Count) {
+            $p = $inParams[$i]
+            $hash[$p.Name] = ConvertTo-WmicCimArg $p $val
+        }
+        else {
+            $hash["Arg$i"] = [string]$val
+        }
     }
     return $hash
 }
@@ -1045,14 +1068,21 @@ function Invoke-WmicParsed {
             if ($meta) {
                 $argHash = ConvertTo-MethodArguments $meta $Parsed.CallArgs $info
             }
-            elseif ($info -and $info.methods) {
-                $hit = @($info.methods | Where-Object { $_.name -ieq $methodName })
-                if ($hit.Count -gt 0 -and $hit[0].inParams) {
-                    $names = @($hit[0].inParams | ForEach-Object { $_.name })
-                    $callArgs = @(ConvertTo-WmicList $Parsed.CallArgs)
-                    for ($i = 0; $i -lt $callArgs.Count; $i++) {
-                        if ($i -lt $names.Count) { $argHash[$names[$i]] = $callArgs[$i] }
+            elseif (Get-NoteProperty $info 'methods') {
+                $hit = $null
+                foreach ($m in (ConvertTo-WmicList (Get-NoteProperty $info 'methods'))) {
+                    if ((Get-NoteProperty $m 'name') -ieq $methodName) { $hit = $m; break }
+                }
+                $inps = if ($hit) { ConvertTo-WmicList (Get-NoteProperty $hit 'inParams') } else { ConvertTo-WmicList $null }
+                $callArgs = ConvertTo-WmicList $Parsed.CallArgs
+                for ($i = 0; $i -lt $callArgs.Count; $i++) {
+                    $nm = $null
+                    if ($i -lt $inps.Count) {
+                        $p = $inps[$i]
+                        if ($p -is [string]) { $nm = $p } else { $nm = Get-NoteProperty $p 'name' }
                     }
+                    if ($nm) { $argHash[$nm] = [string]$callArgs[$i] }
+                    else { $argHash["Arg$i"] = [string]$callArgs[$i] }
                 }
             }
             $isStatic = $false
