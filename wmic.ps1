@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
   WMIC compatibility wrapper backed by CIM cmdlets.
@@ -54,7 +54,9 @@ function Get-WmicAliasDocument {
     if (-not (Test-Path -LiteralPath $path)) {
         throw "aliases.json が見つかりません: $path"
     }
-    $raw = Get-Content -LiteralPath $path -Raw -Encoding UTF8
+    $utf8 = New-Object System.Text.UTF8Encoding $true
+    $raw = [System.IO.File]::ReadAllText($path, $utf8)
+    if ($raw.Length -gt 0 -and [int][char]$raw[0] -eq 0xFEFF) { $raw = $raw.Substring(1) }
     $script:AliasDoc = $raw | ConvertFrom-Json
     return $script:AliasDoc
 }

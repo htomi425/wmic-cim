@@ -13,6 +13,7 @@ WMIC コマンドラインを **CIM cmdlet** に通すラッパーの契約で�
 | --- | --- |
 | OS | Windows 8 / Server 2012 以降（CIM cmdlet があること） |
 | シェル | Windows PowerShell 5.1 または PowerShell 7（Windows） |
+| スクリプトの文字コード | UTF-8 **BOM 付き**（5.1 が Shift-JIS と誤認しないため。システム UTF-8 設定は不要） |
 | ローカル API | 常に CIM。プロセス内で Winmgmt に届く |
 | リモート API | 既定 WS-Man（WinRM）。接続失敗時だけ DCOM |
 

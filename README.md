@@ -92,6 +92,14 @@ wmic:root\cimv2>
 - Windows PowerShell 5.1 または PowerShell 7
 - 管理者である必要はありません（リモート `/NODE` や一部の `CALL` は権限が要ることがあります）
 
+## 文字コード
+
+`.ps1` は **UTF-8 BOM 付き** です。Windows PowerShell 5.1 は BOM が無いと、日本語 Windows ではスクリプトを Shift-JIS として読みます。その結果、「ベータ: ワールドワイド言語サポートで Unicode UTF-8 を使用」がオフだとパースエラーで動きません。
+
+この配布物はその設定を必要としません。すでに入れている場合は `Install.ps1` をもう一度実行してファイルを上書きしてください。
+
+PowerShell 7 (`pwsh`) は BOM 無し UTF-8 も読めます。
+
 ## ライセンス
 
 MIT
