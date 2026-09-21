@@ -700,6 +700,26 @@ function Get-WmicCimParamSets {
     return @($sets)
 }
 
+function Write-WmicCallResult {
+    param($Result)
+    foreach ($r in (ConvertTo-WmicList $Result)) {
+        if ($null -eq $r) { continue }
+        $props = New-Object System.Collections.Generic.List[string]
+        foreach ($p in $r.PSObject.Properties) {
+            if ($p.Name -match '^(Cim|PSComputerName|PSShowComputerName)') { continue }
+            $props.Add($p.Name)
+        }
+        if ($props.Count -eq 0) { continue }
+        $keyWidth = 0
+        foreach ($c in $props) {
+            if ($c.Length -gt $keyWidth) { $keyWidth = $c.Length }
+        }
+        foreach ($c in $props) {
+            Write-Output ('{0}={1}' -f $c.PadRight($keyWidth), (ConvertTo-WmicValue $r.$c))
+        }
+    }
+}
+
 function Write-WmicFail {
     param($ErrorRecord)
     $msg = $null
@@ -1048,7 +1068,7 @@ function Invoke-WmicParsed {
                     if ($p.ContainsKey('Namespace')) { $im.Namespace = $p.Namespace }
                     if ($p.ContainsKey('CimSession')) { $im.CimSession = $p.CimSession }
                     if ($argHash.Count -gt 0) { $im.Arguments = $argHash }
-                    Invoke-CimMethod @im
+                    Write-WmicCallResult (Invoke-CimMethod @im)
                 }
             }
             else {
@@ -1056,7 +1076,7 @@ function Invoke-WmicParsed {
                     $inst = Get-CimInstance @p
                     $im = @{ MethodName = $methodName }
                     if ($argHash.Count -gt 0) { $im.Arguments = $argHash }
-                    $inst | Invoke-CimMethod @im
+                    Write-WmicCallResult ($inst | Invoke-CimMethod @im)
                 }
             }
         }
