@@ -311,6 +311,8 @@ function Resolve-WmicFormat {
         }
     }
     if ($Parsed.Switches.Contains('value')) { return 'VALUE' }
+    # Official WMIC: LIST BRIEF uses the TABLE stylesheet; LIST FULL uses LIST.
+    if ($Parsed.Verb -eq 'LIST' -and $Parsed.ListStyle -eq 'BRIEF') { return 'TABLE' }
     if ($Parsed.Verb -eq 'LIST') { return 'LIST' }
     return 'TABLE'
 }

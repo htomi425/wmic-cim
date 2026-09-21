@@ -150,10 +150,12 @@ New-CimSessionOption -Protocol Dcom -Impersonation Impersonate -PacketPrivacy
 
 ## 5. 出力
 
-| `/FORMAT` | 出力 |
+| `/FORMAT` / 動詞 | 出力 |
 | --- | --- |
 | 省略時 GET | 空白区切りテーブル（WMIC に近い） |
-| `LIST` / `VALUE` / `LIST BRIEF` | `Name=Value` |
+| `LIST BRIEF` | テーブル。列はエイリアスの BRIEF（公式 WMIC は BRIEF に TABLE スタイルシートを使う） |
+| `LIST` / `LIST FULL` / `VALUE` | `Name=Value` |
+| `/FORMAT:LIST` を BRIEF に付けたとき | `Name=Value`（公式と同じ上書き） |
 | `CSV` | `ConvertTo-Csv -NoTypeInformation` |
 | `XML` | `ConvertTo-Xml -As String`（WMIC の XML とスキーマは違う） |
 | 日時 | `DateTime` を `yyyyMMddHHmmss.ffffffzzz` に寄せる |

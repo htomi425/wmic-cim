@@ -78,10 +78,12 @@
     "className": "Win32_Processor",
     "namespace": "root/cimv2",
     "brief": [
+      "Caption",
+      "DeviceID",
+      "Manufacturer",
+      "MaxClockSpeed",
       "Name",
-      "NumberOfCores",
-      "NumberOfLogicalProcessors",
-      "MaxClockSpeed"
+      "SocketDesignation"
     ],
     "defaultGet": [
       "AddressWidth",
