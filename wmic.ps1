@@ -102,7 +102,7 @@ function Get-WmicTokens {
         }
         $tokens.Add($buf.ToString())
     }
-    return ,$tokens.ToArray()
+    return $tokens
 }
 
 function ConvertTo-WqlFilter {
@@ -126,7 +126,7 @@ function Split-WmicCsv {
             if ($t) { $out.Add($t) }
         }
     }
-    return ,$out.ToArray()
+    return $out
 }
 
 function Parse-WmicPairs {
@@ -190,7 +190,7 @@ function Parse-WmicLine {
         CallArgs    = @()
         Help        = $false
     }
-    $tokens = @(Get-WmicTokens $Line)
+    $tokens = Get-WmicTokens $Line
     $i = 0
     if ($tokens.Count -gt 0 -and $tokens[0].ToLowerInvariant() -eq 'wmic') { $i = 1 }
 
