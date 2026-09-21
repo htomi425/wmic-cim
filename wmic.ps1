@@ -708,6 +708,16 @@ function Write-WmicFail {
         $msg = $ErrorRecord.Exception.Message
     }
     else { $msg = [string]$ErrorRecord }
+    if ([string]::IsNullOrWhiteSpace($msg)) { $msg = '失敗しました。' }
+    $msg = $msg.Trim()
+    if ($msg -notmatch '^(エラー|拒否)[:：]') {
+        if ($msg -match '拒否します|WHERE 無|フィルタ無|全ファイル|全ディレクトリ') {
+            $msg = '拒否: ' + $msg
+        }
+        else {
+            $msg = 'エラー: ' + $msg
+        }
+    }
     [Console]::Error.WriteLine($msg)
 }
 
