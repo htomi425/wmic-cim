@@ -701,22 +701,41 @@ function Get-WmicCimParamSets {
 }
 
 function Write-WmicCallResult {
-    param($Result)
+    param($Result, [string]$ClassName, [string]$MethodName)
+    if ($ClassName -and $MethodName) {
+        Write-Output ('({0})->{1}() を実行しています' -f $ClassName, $MethodName)
+    }
+    $any = $false
     foreach ($r in (ConvertTo-WmicList $Result)) {
         if ($null -eq $r) { continue }
-        $props = New-Object System.Collections.Generic.List[string]
+        $any = $true
+        $rvProp = $r.PSObject.Properties['ReturnValue']
+        $rv = $null
+        if ($rvProp) { $rv = $rvProp.Value }
+        if ($null -eq $rv -or [string]$rv -eq '0') {
+            Write-Output 'メソッドが正しく実行しました。'
+        }
+        $names = New-Object System.Collections.Generic.List[string]
+        foreach ($want in @('ProcessId', 'ReturnValue')) {
+            foreach ($p in $r.PSObject.Properties) {
+                if ($p.Name -match '^(Cim|PSComputerName|PSShowComputerName)') { continue }
+                if ($p.Name -ieq $want) { $names.Add($p.Name); break }
+            }
+        }
         foreach ($p in $r.PSObject.Properties) {
             if ($p.Name -match '^(Cim|PSComputerName|PSShowComputerName)') { continue }
-            $props.Add($p.Name)
+            $seen = $false
+            foreach ($n in $names) { if ($n -ieq $p.Name) { $seen = $true; break } }
+            if (-not $seen) { $names.Add($p.Name) }
         }
-        if ($props.Count -eq 0) { continue }
-        $keyWidth = 0
-        foreach ($c in $props) {
-            if ($c.Length -gt $keyWidth) { $keyWidth = $c.Length }
+        if ($names.Count -eq 0) { continue }
+        Write-Output '出力パラメーター'
+        foreach ($c in $names) {
+            Write-Output ('        {0} = {1}' -f $c, (ConvertTo-WmicValue $r.$c))
         }
-        foreach ($c in $props) {
-            Write-Output ('{0}={1}' -f $c.PadRight($keyWidth), (ConvertTo-WmicValue $r.$c))
-        }
+    }
+    if (-not $any) {
+        Write-Output 'メソッドが正しく実行しました。'
     }
 }
 
@@ -1098,7 +1117,7 @@ function Invoke-WmicParsed {
                     if ($p.ContainsKey('Namespace')) { $im.Namespace = $p.Namespace }
                     if ($p.ContainsKey('CimSession')) { $im.CimSession = $p.CimSession }
                     if ($argHash.Count -gt 0) { $im.Arguments = $argHash }
-                    Write-WmicCallResult (Invoke-CimMethod @im)
+                    Write-WmicCallResult (Invoke-CimMethod @im) $className $methodName
                 }
             }
             else {
@@ -1106,7 +1125,7 @@ function Invoke-WmicParsed {
                     $inst = Get-CimInstance @p
                     $im = @{ MethodName = $methodName }
                     if ($argHash.Count -gt 0) { $im.Arguments = $argHash }
-                    Write-WmicCallResult ($inst | Invoke-CimMethod @im)
+                    Write-WmicCallResult ($inst | Invoke-CimMethod @im) $className $methodName
                 }
             }
         }
