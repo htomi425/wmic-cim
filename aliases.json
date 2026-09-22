@@ -3,11 +3,12 @@
     "className": "Win32_OperatingSystem",
     "namespace": "root/cimv2",
     "brief": [
-      "Caption",
-      "Version",
       "BuildNumber",
-      "OSArchitecture",
-      "LastBootUpTime"
+      "Organization",
+      "RegisteredUser",
+      "SerialNumber",
+      "SystemDirectory",
+      "Version"
     ],
     "defaultGet": [
       "BuildNumber",
@@ -195,9 +196,10 @@
     "className": "Win32_Process",
     "namespace": "root/cimv2",
     "brief": [
+      "HandleCount",
       "Name",
+      "Priority",
       "ProcessId",
-      "ParentProcessId",
       "ThreadCount",
       "WorkingSetSize"
     ],
@@ -268,10 +270,12 @@
     "className": "Win32_Service",
     "namespace": "root/cimv2",
     "brief": [
+      "ExitCode",
       "Name",
-      "DisplayName",
+      "ProcessId",
+      "StartMode",
       "State",
-      "StartMode"
+      "Status"
     ],
     "defaultGet": [
       "Caption",
