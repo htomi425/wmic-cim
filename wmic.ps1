@@ -730,9 +730,12 @@ function Write-WmicCallResult {
         }
         if ($names.Count -eq 0) { continue }
         Write-Output '出力パラメーター'
+        Write-Output 'instance of __PARAMETERS'
+        Write-Output '{'
         foreach ($c in $names) {
-            Write-Output ('        {0} = {1}' -f $c, (ConvertTo-WmicValue $r.$c))
+            Write-Output ('        {0} = {1};' -f $c, (ConvertTo-WmicValue $r.$c))
         }
+        Write-Output '};'
     }
     if (-not $any) {
         Write-Output 'メソッドが正しく実行しました。'
