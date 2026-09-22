@@ -156,13 +156,14 @@ New-CimSessionOption -Protocol Dcom -Impersonation Impersonate -PacketPrivacy
 
 | `/FORMAT` / 動詞 | 出力 |
 | --- | --- |
-| 省略時 GET | 空白区切りテーブル。列名は CIM の正式名 (`caption` → `Caption`) |
+| 省略時 GET | 空白区切りテーブル。列名は CIM の正式名 (`caption` → `Caption`)。0 件でもヘッダは出す |
 | `LIST BRIEF` | テーブル。列はエイリアスの BRIEF（公式 WMIC は BRIEF に TABLE スタイルシートを使う） |
-| `LIST` / `LIST FULL` / `VALUE` | `Name=Value` |
+| `LIST` / `LIST FULL` / `VALUE` | `Name=Value`（パディングなし。公式 list.xsl と同じ） |
 | `/FORMAT:LIST` を BRIEF に付けたとき | `Name=Value`（公式と同じ上書き） |
 | `CSV` | `ConvertTo-Csv -NoTypeInformation` |
 | `XML` | `ConvertTo-Xml -As String`（WMIC の XML とスキーマは違う） |
-| 日時 | `DateTime` を `yyyyMMddHHmmss.ffffffzzz` に寄せる |
+| `CALL` | `(Class)->Method() を実行しています` + `instance of __PARAMETERS { Name = value; };` |
+| 日時 | CIM DATETIME `yyyyMMddHHmmss.ffffff+mmm`（タイムゾーンは分。`+09:00` ではない） |
 | 論理値 | `TRUE` / `FALSE` |
 
 CIM が変換した `DateTime` を、表示だけ DMTF 風に戻しています。バッチが文字列比較している場合の救済です。完全一致は保証しません。

@@ -818,11 +818,11 @@ function Resolve-WmicPropertyCase {
 function Format-WmicTable {
     param($Objects, $Properties)
     $rows = ConvertTo-WmicList $Objects
-    if ($rows.Count -eq 0) { return }
     $Properties = ConvertTo-WmicList $Properties
-    if ($Properties.Count -eq 0) {
+    if ($Properties.Count -eq 0 -and $rows.Count -gt 0) {
         $Properties = ConvertTo-WmicList @($rows[0].PSObject.Properties | Where-Object { $_.Name -notmatch '^Cim' } | Select-Object -ExpandProperty Name)
     }
+    if ($Properties.Count -eq 0) { return }
     $stringRows = New-Object System.Collections.Generic.List[object]
     foreach ($row in $rows) {
         $cells = New-Object System.Collections.Generic.List[string]
@@ -858,13 +858,8 @@ function Format-WmicList {
         if ($props.Count -eq 0) {
             $props = ConvertTo-WmicList @($row.PSObject.Properties | Where-Object { $_.Name -notmatch '^Cim' } | Select-Object -ExpandProperty Name)
         }
-        $keyWidth = 0
         foreach ($c in $props) {
-            $n = ([string]$c).Length
-            if ($n -gt $keyWidth) { $keyWidth = $n }
-        }
-        foreach ($c in $props) {
-            Write-Output ('{0}={1}' -f ([string]$c).PadRight($keyWidth), (ConvertTo-WmicValue $row.$c))
+            Write-Output ('{0}={1}' -f [string]$c, (ConvertTo-WmicValue $row.$c))
         }
     }
 }
