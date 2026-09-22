@@ -460,12 +460,24 @@ function Get-WmicSelectProperties {
     if ($Parsed.Verb -eq 'LIST' -and $Parsed.ListStyle -eq 'BRIEF' -and $Info) {
         return , (ConvertTo-WmicList (Get-NoteProperty $Info 'brief'))
     }
-    if ($Parsed.Verb -eq 'LIST' -and ($Parsed.ListStyle -eq 'FULL' -or -not $Parsed.ListStyle)) {
-        return $null
-    }
-    $dg = Get-NoteProperty $Info 'defaultGet'
-    if ($null -ne $dg) { return , (ConvertTo-WmicList $dg) }
     return $null
+}
+
+function Get-WmicAllPropertyNames {
+    param($Objects)
+    $sample = $null
+    foreach ($o in (ConvertTo-WmicList $Objects)) { $sample = $o; break }
+    $names = New-Object System.Collections.Generic.List[string]
+    if ($null -eq $sample) { return , $names }
+    foreach ($p in $sample.PSObject.Properties) {
+        if ($p.Name -match '^(Cim|PSComputerName|PSShowComputerName)') { continue }
+        $names.Add($p.Name)
+    }
+    $arr = $names.ToArray()
+    if ($arr.Count -gt 1) {
+        [Array]::Sort($arr, [System.StringComparer]::OrdinalIgnoreCase)
+    }
+    return , $arr
 }
 
 function New-WmicQueryParams {
@@ -1098,6 +1110,11 @@ function Invoke-WmicParsed {
             $props = Get-WmicSelectProperties $Parsed $info
             if ((Get-WmicLen $props) -gt 0) {
                 $props = Resolve-WmicPropertyCase $props $got
+            }
+            else {
+                $props = Get-WmicAllPropertyNames $got
+            }
+            if ((Get-WmicLen $props) -gt 0) {
                 $propNames = New-Object string[] $props.Count
                 for ($i = 0; $i -lt $props.Count; $i++) { $propNames[$i] = [string]$props[$i] }
                 $objects = $got | Select-Object -Property $propNames

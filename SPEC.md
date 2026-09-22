@@ -50,7 +50,7 @@ wmic [スイッチ] <エイリアス | PATH クラス> [where <WQL>] <動詞> [�
 
 | 動詞 | CIM | 備考 |
 | --- | --- | --- |
-| `GET`（省略時も GET） | `Get-CimInstance` + 列選択 | エイリアスの defaultGet を使う |
+| `GET`（省略時も GET） | `Get-CimInstance` + 列選択 | 列指定なしは全プロパティ（名前順）。`LIST BRIEF` だけエイリアスの BRIEF |
 | `LIST [BRIEF\|FULL]` | 同上 | BRIEF はエイリアスの brief 列 |
 | `SET name=value,...` | `Set-CimInstance` | |
 | `CALL method [args]` | `Invoke-CimMethod` | クラスの in パラメータ順で位置引数を埋める |
@@ -156,7 +156,7 @@ New-CimSessionOption -Protocol Dcom -Impersonation Impersonate -PacketPrivacy
 
 | `/FORMAT` / 動詞 | 出力 |
 | --- | --- |
-| 省略時 GET | 空白区切りテーブル。列名は CIM の正式名 (`caption` → `Caption`)。0 件なら `利用できるインスタンスがありません。` |
+| 省略時 GET | 全 CIM プロパティのテーブル（名前順）。0 件なら `利用できるインスタンスがありません。` |
 | `LIST BRIEF` | テーブル。列はエイリアスの BRIEF |
 | `LIST` / `LIST FULL` / `VALUE` | `Name=Value`（パディングなし） |
 | `/FORMAT:LIST` を BRIEF に付けたとき | `Name=Value` |
