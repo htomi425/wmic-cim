@@ -700,11 +700,65 @@ function Get-WmicCimParamSets {
     return @($sets)
 }
 
-function Write-WmicCallResult {
-    param($Result, [string]$ClassName, [string]$MethodName)
-    if ($ClassName -and $MethodName) {
-        Write-Output ('({0})->{1}() を実行しています' -f $ClassName, $MethodName)
+function Get-WmicInstancePath {
+    param($Inst, [string]$ClassName, [string]$Namespace)
+    $server = $env:COMPUTERNAME
+    $ns = $Namespace
+    $cls = $ClassName
+    try {
+        $sys = $Inst.CimSystemProperties
+        if ($sys.ServerName) { $server = $sys.ServerName }
+        if ($sys.NamespaceName) { $ns = $sys.NamespaceName }
+        if ($sys.ClassName) { $cls = $sys.ClassName }
+    } catch { }
+    if (-not $ns) { $ns = 'ROOT\CIMV2' }
+    $ns = ($ns -replace '/', '\').ToUpperInvariant()
+    if (-not $cls) { $cls = 'CIM_ManagedSystemElement' }
+    $keys = New-Object System.Collections.Generic.List[string]
+    $props = $null
+    try { $props = $Inst.CimInstanceProperties } catch { $props = $null }
+    if ($props) {
+        foreach ($p in $props) {
+            $flagText = ''
+            try { $flagText = [string]$p.Flags } catch { }
+            if ($flagText -notmatch 'Key') { continue }
+            $v = $p.Value
+            $t = ''
+            try { $t = [string]$p.CimType } catch { }
+            if ($t -eq 'String' -or $v -is [string]) {
+                $keys.Add(('{0}="{1}"' -f $p.Name, $v))
+            }
+            else {
+                $keys.Add(('{0}={1}' -f $p.Name, $v))
+            }
+        }
     }
+    if ($keys.Count -eq 0) {
+        foreach ($cand in @('Handle', 'ProcessId', 'DeviceID', 'Name')) {
+            $v = $null
+            try { $v = $Inst.$cand } catch { }
+            if ($null -eq $v) { continue }
+            if ($v -is [string] -or $cand -eq 'Handle') {
+                $keys.Add(('{0}="{1}"' -f $cand, $v))
+            }
+            else {
+                $keys.Add(('{0}={1}' -f $cand, $v))
+            }
+            break
+        }
+    }
+    $tail = ''
+    if ($keys.Count -gt 0) { $tail = '.' + ($keys -join ',') }
+    return ('\\{0}\{1}:{2}{3}' -f $server, $ns, $cls, $tail)
+}
+
+function Write-WmicCallBegin {
+    param([string]$ClassName, [string]$MethodName)
+    Write-Output ('({0})->{1}() を実行しています' -f $ClassName, $MethodName)
+}
+
+function Write-WmicCallResult {
+    param($Result)
     $any = $false
     foreach ($r in (ConvertTo-WmicList $Result)) {
         if ($null -eq $r) { continue }
@@ -1036,12 +1090,20 @@ function Invoke-WmicParsed {
     switch ($verb) {
         { $_ -eq 'GET' -or $_ -eq 'LIST' } {
             $objects = foreach ($p in $paramSets) { Get-CimInstance @p }
+            $got = ConvertTo-WmicList $objects
+            if ($got.Count -eq 0) {
+                Write-Output '利用できるインスタンスがありません。'
+                return
+            }
             $props = Get-WmicSelectProperties $Parsed $info
             if ((Get-WmicLen $props) -gt 0) {
-                $props = Resolve-WmicPropertyCase $props $objects
+                $props = Resolve-WmicPropertyCase $props $got
                 $propNames = New-Object string[] $props.Count
                 for ($i = 0; $i -lt $props.Count; $i++) { $propNames[$i] = [string]$props[$i] }
-                $objects = $objects | Select-Object -Property $propNames
+                $objects = $got | Select-Object -Property $propNames
+            }
+            else {
+                $objects = $got
             }
             Write-WmicFormatted $Parsed $objects $props
         }
@@ -1049,7 +1111,19 @@ function Invoke-WmicParsed {
             if (-not $query.ContainsKey('Filter')) {
                 throw 'WHERE の無い DELETE は拒否します。'
             }
-            foreach ($p in $paramSets) { Get-CimInstance @p | Remove-CimInstance }
+            $deleted = 0
+            foreach ($p in $paramSets) {
+                foreach ($inst in (ConvertTo-WmicList (Get-CimInstance @p))) {
+                    $path = Get-WmicInstancePath $inst $className $ns
+                    Write-Output ('インスタンス {0} を削除しています' -f $path)
+                    $inst | Remove-CimInstance
+                    Write-Output 'インスタンスは正しく削除されました。'
+                    $deleted++
+                }
+            }
+            if ($deleted -eq 0) {
+                Write-Output '利用できるインスタンスがありません。'
+            }
         }
         'SET' {
             if ((Get-WmicLen $Parsed.SetPairs) -eq 0) { throw 'SET には name=value が必要です。' }
@@ -1115,7 +1189,8 @@ function Invoke-WmicParsed {
                     if ($p.ContainsKey('Namespace')) { $im.Namespace = $p.Namespace }
                     if ($p.ContainsKey('CimSession')) { $im.CimSession = $p.CimSession }
                     if ($argHash.Count -gt 0) { $im.Arguments = $argHash }
-                    Write-WmicCallResult (Invoke-CimMethod @im) $className $methodName
+                    Write-WmicCallBegin $className $methodName
+                    Write-WmicCallResult (Invoke-CimMethod @im)
                 }
             }
             else {
@@ -1123,7 +1198,8 @@ function Invoke-WmicParsed {
                     $inst = Get-CimInstance @p
                     $im = @{ MethodName = $methodName }
                     if ($argHash.Count -gt 0) { $im.Arguments = $argHash }
-                    Write-WmicCallResult ($inst | Invoke-CimMethod @im) $className $methodName
+                    Write-WmicCallBegin $className $methodName
+                    Write-WmicCallResult ($inst | Invoke-CimMethod @im)
                 }
             }
         }

@@ -156,13 +156,14 @@ New-CimSessionOption -Protocol Dcom -Impersonation Impersonate -PacketPrivacy
 
 | `/FORMAT` / 動詞 | 出力 |
 | --- | --- |
-| 省略時 GET | 空白区切りテーブル。列名は CIM の正式名 (`caption` → `Caption`)。0 件でもヘッダは出す |
-| `LIST BRIEF` | テーブル。列はエイリアスの BRIEF（公式 WMIC は BRIEF に TABLE スタイルシートを使う） |
-| `LIST` / `LIST FULL` / `VALUE` | `Name=Value`（パディングなし。公式 list.xsl と同じ） |
-| `/FORMAT:LIST` を BRIEF に付けたとき | `Name=Value`（公式と同じ上書き） |
+| 省略時 GET | 空白区切りテーブル。列名は CIM の正式名 (`caption` → `Caption`)。0 件なら `利用できるインスタンスがありません。` |
+| `LIST BRIEF` | テーブル。列はエイリアスの BRIEF |
+| `LIST` / `LIST FULL` / `VALUE` | `Name=Value`（パディングなし） |
+| `/FORMAT:LIST` を BRIEF に付けたとき | `Name=Value` |
 | `CSV` | `ConvertTo-Csv -NoTypeInformation` |
 | `XML` | `ConvertTo-Xml -As String`（WMIC の XML とスキーマは違う） |
-| `CALL` | `(Class)->Method() を実行しています` + `instance of __PARAMETERS { Name = value; };` |
+| `CALL` | 先に `(Class)->Method() を実行しています`、実行後に成功文と `instance of __PARAMETERS` |
+| `DELETE` | 先に `インスタンス \\host\NS:Class.Key="id" を削除しています`、成功後に `インスタンスは正しく削除されました。` |
 | 日時 | CIM DATETIME `yyyyMMddHHmmss.ffffff+mmm`（タイムゾーンは分。`+09:00` ではない） |
 | 論理値 | `TRUE` / `FALSE` |
 
