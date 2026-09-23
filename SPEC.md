@@ -4,7 +4,7 @@ WMIC コマンドラインを **CIM cmdlet** に通すラッパーの仕様で�
 
 この文書が「何を受け、何を実行し、何を拒否するか」の正本です。未記載の挙動は未定義なので、必要なら issue にしてください。
 
-実装: [`wmic.ps1`](wmic.ps1)  
+実装: [`wmic.ps1`](wmic.ps1)（処理）と [`wmic.exe`](wmic.exe)（起動。x64。ソースは [`wmic-stub.c`](wmic-stub.c)）  
 カタログ: [`aliases.json`](aliases.json)
 
 ## 1. 対象環境
@@ -12,7 +12,7 @@ WMIC コマンドラインを **CIM cmdlet** に通すラッパーの仕様で�
 | 項目 | 値 |
 | --- | --- |
 | OS | Windows 8 / Server 2012 以降（CIM cmdlet があること） |
-| シェル | Windows PowerShell 5.1 または PowerShell 7（Windows） |
+| 起動 | `wmic.exe` が同じフォルダの `wmic.ps1` を PowerShell に渡す。`pwsh` があればそれ、無ければ Windows PowerShell 5.1 |
 | スクリプトの文字コード | UTF-8 **BOM 付き**（5.1 が Shift-JIS と誤認しないため。システム UTF-8 設定は不要） |
 | ローカル API | 常に CIM。プロセス内で Winmgmt に届く |
 | リモート API | 既定 WS-Man（WinRM）。接続失敗時だけ DCOM |

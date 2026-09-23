@@ -44,12 +44,15 @@ $src = $PSScriptRoot
 $dest = Join-Path $env:LOCALAPPDATA 'wmic-cim'
 New-Item -ItemType Directory -Force -Path $dest | Out-Null
 
-foreach ($name in @('wmic.ps1', 'wmic.cmd', 'aliases.json', 'HELP.txt', 'Uninstall.ps1', 'README.md', 'SPEC.md')) {
+foreach ($name in @('wmic.ps1', 'wmic.exe', 'wmic-stub.c', 'aliases.json', 'HELP.txt', 'Uninstall.ps1', 'README.md', 'SPEC.md')) {
     $from = Join-Path $src $name
     if (Test-Path -LiteralPath $from) {
         Copy-Item -LiteralPath $from -Destination (Join-Path $dest $name) -Force
     }
 }
+
+$oldCmd = Join-Path $dest 'wmic.cmd'
+if (Test-Path -LiteralPath $oldCmd) { Remove-Item -LiteralPath $oldCmd -Force }
 
 $userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
 if (-not $userPath) { $userPath = '' }
@@ -84,5 +87,5 @@ if ($AddProfileAlias) {
 Write-Host "Installed to $dest"
 Write-Host '新しいターミナルで  wmic os get caption  を試してください。'
 if ($native -and $Force) {
-    Write-Warning "wmic.exe が残っています: $native 。cmd では .exe が先に解決されます。"
+    Write-Warning "公式の wmic.exe が残っています: $native 。PATH 先頭のラッパーが先に呼ばれます。"
 }

@@ -31,7 +31,7 @@ Set-ExecutionPolicy -Scope Process Bypass
 
 `wmic.exe` があると「入れません」と出て終わります。テスト目的で重ねるときだけ `-Force`。
 
-`%LOCALAPPDATA%\wmic-cim` にコピーし、ユーザー PATH の先頭へ `wmic.cmd` を置きます。プロファイルへ alias は書きません（公式 exe を奪わないため）。
+`%LOCALAPPDATA%\wmic-cim` にコピーし、そのフォルダをユーザー PATH の先頭に足します。起動ファイルは x64 の `wmic.exe`（`wmic-stub.c`）で、同じフォルダの `wmic.ps1` に引数を渡すだけです。`where wmic.exe` もここを見ます。System32 には置きません。
 
 新しいターミナルを開いて:
 
