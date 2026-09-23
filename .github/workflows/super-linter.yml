@@ -20,14 +20,16 @@ jobs:
       statuses: write
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
           fetch-depth: 0
           persist-credentials: false
 
       - name: Lint Code Base
-        uses: super-linter/super-linter@v8.7.0
+        uses: super-linter/super-linter@4ce20838b8ab83717e78138c5b3a1407148e0918
         env:
           VALIDATE_ALL_CODEBASE: false
           DEFAULT_BRANCH: "main"
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VALIDATE_JSON_PRETTIER: false # biomeとの競合を避けるために無効化
+
