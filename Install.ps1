@@ -44,15 +44,17 @@ $src = $PSScriptRoot
 $dest = Join-Path $env:LOCALAPPDATA 'wmic-cim'
 New-Item -ItemType Directory -Force -Path $dest | Out-Null
 
-foreach ($name in @('wmic.ps1', 'wmic.exe', 'wmic-stub.c', 'aliases.json', 'HELP.txt', 'Uninstall.ps1', 'README.md', 'SPEC.md')) {
+foreach ($name in @('wmic.ps1', 'wmic.exe', 'aliases.json', 'HELP.txt', 'Uninstall.ps1', 'README.md', 'SPEC.md')) {
     $from = Join-Path $src $name
     if (Test-Path -LiteralPath $from) {
         Copy-Item -LiteralPath $from -Destination (Join-Path $dest $name) -Force
     }
 }
 
-$oldCmd = Join-Path $dest 'wmic.cmd'
-if (Test-Path -LiteralPath $oldCmd) { Remove-Item -LiteralPath $oldCmd -Force }
+foreach ($stale in @('wmic.cmd', 'wmic-stub.c')) {
+    $old = Join-Path $dest $stale
+    if (Test-Path -LiteralPath $old) { Remove-Item -LiteralPath $old -Force }
+}
 
 $userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
 if (-not $userPath) { $userPath = '' }

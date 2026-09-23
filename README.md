@@ -31,7 +31,7 @@ Set-ExecutionPolicy -Scope Process Bypass
 
 `wmic.exe` があると「入れません」と出て終わります。テスト目的で重ねるときだけ `-Force`。
 
-`%LOCALAPPDATA%\wmic-cim` にコピーし、そのフォルダをユーザー PATH の先頭に足します。起動ファイルは x64 の `wmic.exe`（`wmic-stub.c`）で、同じフォルダの `wmic.ps1` に引数を渡すだけです。`where wmic.exe` もここを見ます。System32 には置きません。
+`%LOCALAPPDATA%\wmic-cim` にコピーし、そのフォルダをユーザー PATH の先頭に足します。入るのは `wmic.exe` と `wmic.ps1` です。ソースの `wmic-stub.c` は置きません。`wmic.exe` は x64 の起動専用で、同じフォルダの `wmic.ps1` に引数を渡すだけです。`where wmic.exe` もここを見ます。System32 には置きません。
 
 新しいターミナルを開いて:
 
@@ -45,4 +45,29 @@ wmic /?
 
 ```powershell
 & "$env:LOCALAPPDATA\wmic-cim\Uninstall.ps1"
+```
+
+## wmic.exe のビルド
+
+処理はすべて `wmic.ps1` です。`wmic.exe` は `wmic-stub.c` の転送スタブで、リポジトリに同梱しているバイナリは次で作っています。
+
+Zig 0.14.1（Windows でも Linux でも同じ）:
+
+```text
+zig cc -target x86_64-windows-gnu -O2 -s -o wmic.exe wmic-stub.c
+```
+
+この組み合わせの SHA-256:
+
+```text
+wmic-stub.c  9b0245b9b0a538ec47bda82287f1e682041f20e0caf552a2a86e12ae121f3a58
+wmic.exe     e647c70134ea510658f87e0cd9796d1d24a4465c0fb28e4d2917503323ae8b94
+```
+
+ソースかコンパイラを変えると exe のハッシュは変わります。同梱バイナリを信用しないときは、同じコマンドで作り直してから `Install.ps1` してください。
+
+MinGW-w64 でも作れます。ハッシュは Zig 版と一致しません。
+
+```text
+x86_64-w64-mingw32-gcc -O2 -s -o wmic.exe wmic-stub.c
 ```
