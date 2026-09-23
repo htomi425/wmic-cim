@@ -1,1326 +1,1087 @@
 {
-  "OS": {
-    "className": "Win32_OperatingSystem",
-    "namespace": "root/cimv2",
-    "brief": [
-      "BuildNumber",
-      "Organization",
-      "RegisteredUser",
-      "SerialNumber",
-      "SystemDirectory",
-      "Version"
-    ],
-    "defaultGet": [
-      "BuildNumber",
-      "Caption",
-      "CodeSet",
-      "CountryCode",
-      "CurrentTimeZone",
-      "Locale",
-      "Manufacturer",
-      "Name",
-      "OSArchitecture",
-      "RegisteredUser",
-      "SerialNumber",
-      "SystemDirectory",
-      "SystemDrive",
-      "TotalVisibleMemorySize",
-      "Version",
-      "WindowsDirectory"
-    ],
-    "extra": [
-      "BootDevice",
-      "CSName",
-      "FreePhysicalMemory",
-      "FreeSpaceInPagingFiles",
-      "InstallDate",
-      "LastBootUpTime",
-      "NumberOfProcesses",
-      "NumberOfUsers",
-      "Organization",
-      "OSLanguage",
-      "Status",
-      "TotalVirtualMemorySize"
-    ],
-    "settable": [],
-    "caution": "",
-    "methods": [
-      {
-        "name": "Reboot",
-        "static": false,
-        "inParams": [],
-        "description": "再起動"
-      },
-      {
-        "name": "Shutdown",
-        "static": false,
-        "inParams": [],
-        "description": "シャットダウン"
-      },
-      {
-        "name": "Win32Shutdown",
-        "static": false,
-        "inParams": [
-          {
-            "name": "Flags",
-            "type": "int"
-          },
-          {
-            "name": "Reserved",
-            "type": "int",
-            "optional": true
-          }
-        ],
-        "description": "ログオフ / 電源操作 (Flags: 0 ログオフ, 1 シャットダウン, 2 再起動, 8 電源オフ)"
-      }
-    ]
-  },
-  "CPU": {
-    "className": "Win32_Processor",
-    "namespace": "root/cimv2",
-    "brief": [
-      "Caption",
-      "DeviceID",
-      "Manufacturer",
-      "MaxClockSpeed",
-      "Name",
-      "SocketDesignation"
-    ],
-    "defaultGet": [
-      "AddressWidth",
-      "Architecture",
-      "Caption",
-      "DeviceID",
-      "L2CacheSize",
-      "L3CacheSize",
-      "LoadPercentage",
-      "Manufacturer",
-      "MaxClockSpeed",
-      "Name",
-      "NumberOfCores",
-      "NumberOfLogicalProcessors",
-      "SocketDesignation"
-    ],
-    "extra": [
-      "CurrentClockSpeed",
-      "Family",
-      "ProcessorId",
-      "Status",
-      "ThreadCount",
-      "VirtualizationFirmwareEnabled"
-    ],
-    "settable": [],
-    "caution": "",
-    "methods": []
-  },
-  "COMPUTERSYSTEM": {
-    "className": "Win32_ComputerSystem",
-    "namespace": "root/cimv2",
-    "brief": [
-      "Name",
-      "Manufacturer",
-      "Model",
-      "Domain",
-      "TotalPhysicalMemory"
-    ],
-    "defaultGet": [
-      "AdminPasswordStatus",
-      "Domain",
-      "HypervisorPresent",
-      "Manufacturer",
-      "Model",
-      "Name",
-      "NumberOfLogicalProcessors",
-      "NumberOfProcessors",
-      "PartOfDomain",
-      "PrimaryOwnerName",
-      "TotalPhysicalMemory",
-      "UserName",
-      "Workgroup"
-    ],
-    "extra": [
-      "BootupState",
-      "DNSHostName",
-      "PCSystemType",
-      "SystemType",
-      "WakeUpType"
-    ],
-    "settable": [],
-    "caution": "",
-    "methods": [
-      {
-        "name": "Rename",
-        "static": false,
-        "inParams": [
-          {
-            "name": "Name",
-            "type": "string"
-          }
-        ],
-        "description": "コンピュータ名を変更"
-      },
-      {
-        "name": "JoinDomainOrWorkgroup",
-        "static": false,
-        "inParams": [
-          {
-            "name": "Name",
-            "type": "string"
-          },
-          {
-            "name": "Password",
-            "type": "string",
-            "optional": true
-          },
-          {
-            "name": "UserName",
-            "type": "string",
-            "optional": true
-          },
-          {
-            "name": "AccountOU",
-            "type": "string",
-            "optional": true
-          },
-          {
-            "name": "FJoinOptions",
-            "type": "int",
-            "optional": true
-          }
-        ],
-        "description": "ドメイン / ワークグループへ参加"
-      }
-    ]
-  },
-  "PROCESS": {
-    "className": "Win32_Process",
-    "namespace": "root/cimv2",
-    "brief": [
-      "HandleCount",
-      "Name",
-      "Priority",
-      "ProcessId",
-      "ThreadCount",
-      "WorkingSetSize"
-    ],
-    "defaultGet": [
-      "Caption",
-      "CommandLine",
-      "CreationDate",
-      "ExecutablePath",
-      "HandleCount",
-      "Name",
-      "PageFileUsage",
-      "ParentProcessId",
-      "Priority",
-      "ProcessId",
-      "SessionId",
-      "ThreadCount",
-      "WorkingSetSize"
-    ],
-    "extra": [
-      "CSName",
-      "Handle",
-      "KernelModeTime",
-      "PeakWorkingSetSize",
-      "PrivatePageCount",
-      "UserModeTime",
-      "VirtualSize"
-    ],
-    "settable": [],
-    "caution": "",
-    "methods": [
-      {
-        "name": "Create",
-        "static": true,
-        "inParams": [
-          {
-            "name": "CommandLine",
-            "type": "string"
-          },
-          {
-            "name": "CurrentDirectory",
-            "type": "string",
-            "optional": true
-          }
-        ],
-        "description": "プロセスを起動"
-      },
-      {
-        "name": "Terminate",
-        "static": false,
-        "inParams": [
-          {
-            "name": "Reason",
-            "type": "uint32",
-            "optional": true
-          }
-        ],
-        "description": "プロセスを終了"
-      },
-      {
-        "name": "GetOwner",
-        "static": false,
-        "inParams": [],
-        "description": "実行ユーザーを取得"
-      }
-    ]
-  },
-  "SERVICE": {
-    "className": "Win32_Service",
-    "namespace": "root/cimv2",
-    "brief": [
-      "ExitCode",
-      "Name",
-      "ProcessId",
-      "StartMode",
-      "State",
-      "Status"
-    ],
-    "defaultGet": [
-      "Caption",
-      "DisplayName",
-      "Name",
-      "PathName",
-      "ProcessId",
-      "StartMode",
-      "StartName",
-      "State",
-      "Status"
-    ],
-    "extra": [
-      "AcceptPause",
-      "AcceptStop",
-      "DelayedAutoStart",
-      "Description",
-      "DesktopInteract",
-      "ExitCode",
-      "ServiceType"
-    ],
-    "settable": [
-      "StartMode",
-      "StartName"
-    ],
-    "caution": "",
-    "methods": [
-      {
-        "name": "StartService",
-        "static": false,
-        "inParams": [],
-        "description": "開始"
-      },
-      {
-        "name": "StopService",
-        "static": false,
-        "inParams": [],
-        "description": "停止"
-      },
-      {
-        "name": "PauseService",
-        "static": false,
-        "inParams": [],
-        "description": "一時停止"
-      },
-      {
-        "name": "ResumeService",
-        "static": false,
-        "inParams": [],
-        "description": "再開"
-      },
-      {
-        "name": "ChangeStartMode",
-        "static": false,
-        "inParams": [
-          {
-            "name": "StartMode",
-            "type": "string"
-          }
-        ],
-        "description": "開始モード変更 (Automatic / Manual / Disabled)"
-      },
-      {
-        "name": "Delete",
-        "static": false,
-        "inParams": [],
-        "description": "サービスを削除"
-      }
-    ]
-  },
-  "LOGICALDISK": {
-    "className": "Win32_LogicalDisk",
-    "namespace": "root/cimv2",
-    "brief": [
-      "DeviceID",
-      "VolumeName",
-      "FileSystem",
-      "Size",
-      "FreeSpace"
-    ],
-    "defaultGet": [
-      "Compressed",
-      "Description",
-      "DeviceID",
-      "DriveType",
-      "FileSystem",
-      "FreeSpace",
-      "MediaType",
-      "Size",
-      "VolumeName",
-      "VolumeSerialNumber"
-    ],
-    "extra": [
-      "SupportsDiskQuotas",
-      "VolumeDirty"
-    ],
-    "settable": [],
-    "caution": "",
-    "methods": []
-  },
-  "DISKDRIVE": {
-    "className": "Win32_DiskDrive",
-    "namespace": "root/cimv2",
-    "brief": [
-      "Caption",
-      "Index",
-      "Size",
-      "InterfaceType",
-      "SerialNumber"
-    ],
-    "defaultGet": [
-      "BytesPerSector",
-      "Caption",
-      "DeviceID",
-      "Index",
-      "InterfaceType",
-      "MediaType",
-      "Model",
-      "Partitions",
-      "SerialNumber",
-      "Size",
-      "Status"
-    ],
-    "extra": [
-      "FirmwareRevision",
-      "PNPDeviceID",
-      "SectorsPerTrack",
-      "TotalCylinders",
-      "TotalSectors"
-    ],
-    "settable": [],
-    "caution": "",
-    "methods": []
-  },
-  "NIC": {
-    "className": "Win32_NetworkAdapter",
-    "namespace": "root/cimv2",
-    "brief": [
-      "Name",
-      "MACAddress",
-      "NetEnabled",
-      "Speed"
-    ],
-    "defaultGet": [
-      "AdapterType",
-      "DeviceID",
-      "GUID",
-      "Index",
-      "MACAddress",
-      "Manufacturer",
-      "Name",
-      "NetConnectionID",
-      "NetEnabled",
-      "PhysicalAdapter",
-      "Speed",
-      "Status"
-    ],
-    "extra": [
-      "PNPDeviceID",
-      "ServiceName"
-    ],
-    "settable": [],
-    "caution": "",
-    "methods": [
-      {
-        "name": "Enable",
-        "static": false,
-        "inParams": [],
-        "description": "アダプタを有効化"
-      },
-      {
-        "name": "Disable",
-        "static": false,
-        "inParams": [],
-        "description": "アダプタを無効化"
-      }
-    ]
-  },
-  "NICCONFIG": {
-    "className": "Win32_NetworkAdapterConfiguration",
-    "namespace": "root/cimv2",
-    "brief": [
-      "Description",
-      "MACAddress",
-      "IPAddress",
-      "IPEnabled",
-      "DHCPEnabled"
-    ],
-    "defaultGet": [
-      "DefaultIPGateway",
-      "Description",
-      "DHCPEnabled",
-      "DHCPServer",
-      "DNSServerSearchOrder",
-      "Index",
-      "IPAddress",
-      "IPEnabled",
-      "IPSubnet",
-      "MACAddress"
-    ],
-    "extra": [
-      "DNSDomain",
-      "DNSHostName",
-      "MTU",
-      "ServiceName",
-      "SettingID"
-    ],
-    "settable": [],
-    "caution": "",
-    "methods": [
-      {
-        "name": "EnableDHCP",
-        "static": false,
-        "inParams": [],
-        "description": "DHCP を有効化"
-      },
-      {
-        "name": "EnableStatic",
-        "static": false,
-        "inParams": [
-          {
-            "name": "IPAddress",
-            "type": "string[]"
-          },
-          {
-            "name": "SubnetMask",
-            "type": "string[]"
-          }
-        ],
-        "description": "静的 IP を設定"
-      }
-    ]
-  },
-  "BIOS": {
-    "className": "Win32_BIOS",
-    "namespace": "root/cimv2",
-    "brief": [
-      "Manufacturer",
-      "Name",
-      "SMBIOSBIOSVersion",
-      "ReleaseDate"
-    ],
-    "defaultGet": [
-      "BiosCharacteristics",
-      "Caption",
-      "Manufacturer",
-      "Name",
-      "ReleaseDate",
-      "SerialNumber",
-      "SMBIOSBIOSVersion",
-      "SMBIOSMajorVersion",
-      "SMBIOSMinorVersion",
-      "Version"
-    ],
-    "extra": [],
-    "settable": [],
-    "caution": "",
-    "methods": []
-  },
-  "BASEBOARD": {
-    "className": "Win32_BaseBoard",
-    "namespace": "root/cimv2",
-    "brief": [
-      "Manufacturer",
-      "Product",
-      "SerialNumber",
-      "Version"
-    ],
-    "defaultGet": [
-      "Manufacturer",
-      "Product",
-      "SerialNumber",
-      "Version",
-      "Name",
-      "Model",
-      "HostingBoard"
-    ],
-    "extra": [],
-    "settable": [],
-    "caution": "",
-    "methods": []
-  },
-  "MEMORYCHIP": {
-    "className": "Win32_PhysicalMemory",
-    "namespace": "root/cimv2",
-    "brief": [
-      "BankLabel",
-      "Capacity",
-      "Speed",
-      "Manufacturer",
-      "PartNumber"
-    ],
-    "defaultGet": [
-      "BankLabel",
-      "Capacity",
-      "ConfiguredClockSpeed",
-      "DeviceLocator",
-      "FormFactor",
-      "Manufacturer",
-      "PartNumber",
-      "SerialNumber",
-      "Speed"
-    ],
-    "extra": [],
-    "settable": [],
-    "caution": "",
-    "methods": []
-  },
-  "MEMPHYSICAL": {
-    "className": "Win32_PhysicalMemoryArray",
-    "namespace": "root/cimv2",
-    "brief": [
-      "MaxCapacity",
-      "MemoryDevices"
-    ],
-    "defaultGet": [
-      "MaxCapacity",
-      "MemoryDevices",
-      "MemoryErrorCorrection",
-      "Use"
-    ],
-    "extra": [],
-    "settable": [],
-    "caution": "",
-    "methods": []
-  },
-  "QFE": {
-    "className": "Win32_QuickFixEngineering",
-    "namespace": "root/cimv2",
-    "brief": [
-      "HotFixID",
-      "InstalledOn",
-      "Description"
-    ],
-    "defaultGet": [
-      "Caption",
-      "CSName",
-      "Description",
-      "FixComments",
-      "HotFixID",
-      "InstallDate",
-      "InstalledBy",
-      "InstalledOn"
-    ],
-    "extra": [],
-    "settable": [],
-    "caution": "",
-    "methods": []
-  },
-  "PRODUCT": {
-    "className": "Win32_Product",
-    "namespace": "root/cimv2",
-    "brief": [
-      "Name",
-      "Version",
-      "Vendor"
-    ],
-    "defaultGet": [
-      "IdentifyingNumber",
-      "InstallDate",
-      "InstallLocation",
-      "Name",
-      "Vendor",
-      "Version"
-    ],
-    "extra": [
-      "PackageCache",
-      "PackageName",
-      "URLInfoAbout"
-    ],
-    "settable": [],
-    "caution": "Win32_Product の列挙は各 MSI の整合性チェックを走らせ、遅い上にイベントログが汚れます。Get-Package かレジストリ Uninstall キーの方が安全です。",
-    "methods": [
-      {
-        "name": "Uninstall",
-        "static": false,
-        "inParams": [],
-        "description": "アンインストール"
-      }
-    ]
-  },
-  "STARTUP": {
-    "className": "Win32_StartupCommand",
-    "namespace": "root/cimv2",
-    "brief": [
-      "Name",
-      "Command",
-      "User",
-      "Location"
-    ],
-    "defaultGet": [
-      "Caption",
-      "Command",
-      "Description",
-      "Location",
-      "Name",
-      "User",
-      "UserSID"
-    ],
-    "extra": [],
-    "settable": [],
-    "caution": "",
-    "methods": []
-  },
-  "SHARE": {
-    "className": "Win32_Share",
-    "namespace": "root/cimv2",
-    "brief": [
-      "Name",
-      "Path",
-      "Type",
-      "Description"
-    ],
-    "defaultGet": [
-      "AllowMaximum",
-      "Caption",
-      "Description",
-      "Name",
-      "Path",
-      "Status",
-      "Type"
-    ],
-    "extra": [],
-    "settable": [],
-    "caution": "",
-    "methods": [
-      {
-        "name": "Create",
-        "static": true,
-        "inParams": [
-          {
-            "name": "Path",
-            "type": "string"
-          },
-          {
-            "name": "Name",
-            "type": "string"
-          },
-          {
-            "name": "Type",
-            "type": "uint32"
-          },
-          {
-            "name": "MaximumAllowed",
-            "type": "uint32",
-            "optional": true
-          },
-          {
-            "name": "Description",
-            "type": "string",
-            "optional": true
-          }
-        ],
-        "description": "共有を作成"
-      },
-      {
-        "name": "Delete",
-        "static": false,
-        "inParams": [],
-        "description": "共有を削除"
-      }
-    ]
-  },
-  "USERACCOUNT": {
-    "className": "Win32_UserAccount",
-    "namespace": "root/cimv2",
-    "brief": [
-      "Name",
-      "Domain",
-      "Disabled",
-      "SID"
-    ],
-    "defaultGet": [
-      "AccountType",
-      "Disabled",
-      "Domain",
-      "FullName",
-      "LocalAccount",
-      "Lockout",
-      "Name",
-      "SID",
-      "SIDType",
-      "Status"
-    ],
-    "extra": [
-      "Description",
-      "PasswordChangeable",
-      "PasswordExpires",
-      "PasswordRequired"
-    ],
-    "settable": [],
-    "caution": "ドメイン環境ではフィルタ無しの列挙は重いです。Name か Domain で絞ってください。",
-    "methods": []
-  },
-  "GROUP": {
-    "className": "Win32_Group",
-    "namespace": "root/cimv2",
-    "brief": [
-      "Name",
-      "Domain",
-      "SID"
-    ],
-    "defaultGet": [
-      "Description",
-      "Domain",
-      "LocalAccount",
-      "Name",
-      "SID",
-      "SIDType",
-      "Status"
-    ],
-    "extra": [],
-    "settable": [],
-    "caution": "",
-    "methods": []
-  },
-  "ENVIRONMENT": {
-    "className": "Win32_Environment",
-    "namespace": "root/cimv2",
-    "brief": [
-      "Name",
-      "UserName",
-      "VariableValue"
-    ],
-    "defaultGet": [
-      "Name",
-      "SystemVariable",
-      "UserName",
-      "VariableValue"
-    ],
-    "extra": [],
-    "settable": [
-      "VariableValue"
-    ],
-    "caution": "",
-    "methods": []
-  },
-  "PRINTER": {
-    "className": "Win32_Printer",
-    "namespace": "root/cimv2",
-    "brief": [
-      "Name",
-      "DriverName",
-      "PortName",
-      "PrinterStatus"
-    ],
-    "defaultGet": [
-      "Default",
-      "DriverName",
-      "Name",
-      "Network",
-      "PortName",
-      "PrinterStatus",
-      "Shared",
-      "ShareName"
-    ],
-    "extra": [
-      "Location",
-      "PrintProcessor",
-      "WorkOffline"
-    ],
-    "settable": [],
-    "caution": "",
-    "methods": []
-  },
-  "PAGEFILE": {
-    "className": "Win32_PageFileUsage",
-    "namespace": "root/cimv2",
-    "brief": [
-      "Name",
-      "AllocatedBaseSize",
-      "CurrentUsage",
-      "PeakUsage"
-    ],
-    "defaultGet": [
-      "AllocatedBaseSize",
-      "CurrentUsage",
-      "Name",
-      "PeakUsage",
-      "TempPageFile"
-    ],
-    "extra": [],
-    "settable": [],
-    "caution": "",
-    "methods": []
-  },
-  "PARTITION": {
-    "className": "Win32_DiskPartition",
-    "namespace": "root/cimv2",
-    "brief": [
-      "DeviceID",
-      "DiskIndex",
-      "Size",
-      "Type",
-      "Bootable"
-    ],
-    "defaultGet": [
-      "Bootable",
-      "BootPartition",
-      "DeviceID",
-      "DiskIndex",
-      "Index",
-      "PrimaryPartition",
-      "Size",
-      "Type"
-    ],
-    "extra": [],
-    "settable": [],
-    "caution": "",
-    "methods": []
-  },
-  "VOLUME": {
-    "className": "Win32_Volume",
-    "namespace": "root/cimv2",
-    "brief": [
-      "DriveLetter",
-      "Label",
-      "FileSystem",
-      "Capacity",
-      "FreeSpace"
-    ],
-    "defaultGet": [
-      "Capacity",
-      "DeviceID",
-      "DriveLetter",
-      "FileSystem",
-      "FreeSpace",
-      "Label",
-      "SerialNumber"
-    ],
-    "extra": [
-      "BootVolume",
-      "IndexingEnabled",
-      "PageFilePresent",
-      "SystemVolume"
-    ],
-    "settable": [],
-    "caution": "",
-    "methods": []
-  },
-  "TIMEZONE": {
-    "className": "Win32_TimeZone",
-    "namespace": "root/cimv2",
-    "brief": [
-      "StandardName",
-      "Caption",
-      "Bias"
-    ],
-    "defaultGet": [
-      "Bias",
-      "Caption",
-      "DaylightName",
-      "StandardName"
-    ],
-    "extra": [],
-    "settable": [],
-    "caution": "",
-    "methods": []
-  },
-  "DESKTOPMONITOR": {
-    "className": "Win32_DesktopMonitor",
-    "namespace": "root/cimv2",
-    "brief": [
-      "Name",
-      "ScreenWidth",
-      "ScreenHeight",
-      "PNPDeviceID"
-    ],
-    "defaultGet": [
-      "Name",
-      "PNPDeviceID",
-      "ScreenHeight",
-      "ScreenWidth",
-      "Status"
-    ],
-    "extra": [],
-    "settable": [],
-    "caution": "",
-    "methods": []
-  },
-  "SOUNDDEV": {
-    "className": "Win32_SoundDevice",
-    "namespace": "root/cimv2",
-    "brief": [
-      "Name",
-      "Manufacturer",
-      "Status"
-    ],
-    "defaultGet": [
-      "Manufacturer",
-      "Name",
-      "ProductName",
-      "Status"
-    ],
-    "extra": [],
-    "settable": [],
-    "caution": "",
-    "methods": []
-  },
-  "SYSDRIVER": {
-    "className": "Win32_SystemDriver",
-    "namespace": "root/cimv2",
-    "brief": [
-      "Name",
-      "State",
-      "StartMode",
-      "PathName"
-    ],
-    "defaultGet": [
-      "DisplayName",
-      "Name",
-      "PathName",
-      "StartMode",
-      "State",
-      "Status"
-    ],
-    "extra": [
-      "AcceptPause",
-      "AcceptStop",
-      "Description",
-      "ServiceType"
-    ],
-    "settable": [],
-    "caution": "",
-    "methods": []
-  },
-  "CDROM": {
-    "className": "Win32_CDROMDrive",
-    "namespace": "root/cimv2",
-    "brief": [
-      "Caption",
-      "Drive",
-      "MediaLoaded"
-    ],
-    "defaultGet": [
-      "Caption",
-      "Drive",
-      "Manufacturer",
-      "MediaLoaded",
-      "MediaType",
-      "Name"
-    ],
-    "extra": [],
-    "settable": [],
-    "caution": "",
-    "methods": []
-  },
-  "NTEVENTLOG": {
-    "className": "Win32_NTEventlogFile",
-    "namespace": "root/cimv2",
-    "brief": [
-      "LogfileName",
-      "FileSize",
-      "NumberOfRecords",
-      "Name"
-    ],
-    "defaultGet": [
-      "FileSize",
-      "LogfileName",
-      "MaxFileSize",
-      "Name",
-      "NumberOfRecords",
-      "OverwriteOutDated"
-    ],
-    "extra": [],
-    "settable": [],
-    "caution": "",
-    "methods": []
-  },
-  "NTEVENT": {
-    "className": "Win32_NTLogEvent",
-    "namespace": "root/cimv2",
-    "brief": [
-      "Logfile",
-      "EventCode",
-      "Type",
-      "TimeGenerated",
-      "SourceName"
-    ],
-    "defaultGet": [
-      "Category",
-      "EventCode",
-      "EventIdentifier",
-      "EventType",
-      "Logfile",
-      "Message",
-      "RecordNumber",
-      "SourceName",
-      "TimeGenerated",
-      "Type",
-      "User"
-    ],
-    "extra": [],
-    "settable": [],
-    "caution": "フィルタ無しの NTEVENT は巨大です。Logfile と TimeGenerated で必ず絞ってください。",
-    "methods": []
-  },
-  "JOB": {
-    "className": "Win32_ScheduledJob",
-    "namespace": "root/cimv2",
-    "brief": [
-      "JobId",
-      "Command",
-      "StartTime",
-      "DaysOfWeek"
-    ],
-    "defaultGet": [
-      "Command",
-      "DaysOfMonth",
-      "DaysOfWeek",
-      "JobId",
-      "JobStatus",
-      "Owner",
-      "StartTime"
-    ],
-    "extra": [],
-    "settable": [],
-    "caution": "Win32_ScheduledJob は AT サービス向けです。現行のタスクは Get-ScheduledTask を使ってください。",
-    "methods": []
-  },
-  "REGISTRY": {
-    "className": "Win32_Registry",
-    "namespace": "root/cimv2",
-    "brief": [
-      "CurrentSize",
-      "MaximumSize",
-      "ProposedSize"
-    ],
-    "defaultGet": [
-      "CurrentSize",
-      "MaximumSize",
-      "ProposedSize",
-      "Status"
-    ],
-    "extra": [],
-    "settable": [],
-    "caution": "",
-    "methods": []
-  },
-  "CSPRODUCT": {
-    "className": "Win32_ComputerSystemProduct",
-    "namespace": "root/cimv2",
-    "brief": [
-      "Vendor",
-      "Name",
-      "IdentifyingNumber",
-      "UUID"
-    ],
-    "defaultGet": [
-      "IdentifyingNumber",
-      "Name",
-      "SKUNumber",
-      "UUID",
-      "Vendor",
-      "Version"
-    ],
-    "extra": [],
-    "settable": [],
-    "caution": "",
-    "methods": []
-  },
-  "RECOVEROS": {
-    "className": "Win32_OSRecoveryConfiguration",
-    "namespace": "root/cimv2",
-    "brief": [
-      "DebugFilePath",
-      "WriteToSystemLog",
-      "AutoReboot"
-    ],
-    "defaultGet": [
-      "AutoReboot",
-      "DebugFilePath",
-      "OverwriteExistingDebugFile",
-      "WriteDebugInfo",
-      "WriteToSystemLog"
-    ],
-    "extra": [],
-    "settable": [
-      "AutoReboot",
-      "DebugFilePath",
-      "WriteDebugInfo",
-      "WriteToSystemLog"
-    ],
-    "caution": "",
-    "methods": []
-  },
-  "NETUSE": {
-    "className": "Win32_NetworkConnection",
-    "namespace": "root/cimv2",
-    "brief": [
-      "LocalName",
-      "RemoteName",
-      "ConnectionState",
-      "UserName"
-    ],
-    "defaultGet": [
-      "ConnectionState",
-      "LocalName",
-      "Persistent",
-      "RemoteName",
-      "UserName"
-    ],
-    "extra": [],
-    "settable": [],
-    "caution": "",
-    "methods": []
-  },
-  "NETPROTOCOL": {
-    "className": "Win32_NetworkProtocol",
-    "namespace": "root/cimv2",
-    "brief": [
-      "Name",
-      "Status"
-    ],
-    "defaultGet": [
-      "Caption",
-      "ConnectionlessService",
-      "Name",
-      "Status",
-      "SupportsBroadcasting"
-    ],
-    "extra": [],
-    "settable": [],
-    "caution": "",
-    "methods": []
-  },
-  "SYSTEMENCLOSURE": {
-    "className": "Win32_SystemEnclosure",
-    "namespace": "root/cimv2",
-    "brief": [
-      "Manufacturer",
-      "SerialNumber",
-      "ChassisTypes",
-      "LockPresent"
-    ],
-    "defaultGet": [
-      "ChassisTypes",
-      "LockPresent",
-      "Manufacturer",
-      "SerialNumber",
-      "SMBIOSAssetTag",
-      "Tag"
-    ],
-    "extra": [],
-    "settable": [],
-    "caution": "",
-    "methods": []
-  },
-  "DESKTOP": {
-    "className": "Win32_Desktop",
-    "namespace": "root/cimv2",
-    "brief": [
-      "Name",
-      "Wallpaper",
-      "ScreenSaverActive"
-    ],
-    "defaultGet": [
-      "BorderWidth",
-      "Name",
-      "ScreenSaverActive",
-      "ScreenSaverExecutable",
-      "Wallpaper"
-    ],
-    "extra": [],
-    "settable": [],
-    "caution": "",
-    "methods": []
-  },
-  "LOGON": {
-    "className": "Win32_LogonSession",
-    "namespace": "root/cimv2",
-    "brief": [
-      "LogonId",
-      "LogonType",
-      "StartTime"
-    ],
-    "defaultGet": [
-      "AuthenticationPackage",
-      "LogonId",
-      "LogonType",
-      "Name",
-      "StartTime"
-    ],
-    "extra": [],
-    "settable": [],
-    "caution": "",
-    "methods": []
-  },
-  "FSDIR": {
-    "className": "Win32_Directory",
-    "namespace": "root/cimv2",
-    "brief": [
-      "Name",
-      "FileSize",
-      "LastModified"
-    ],
-    "defaultGet": [
-      "Archive",
-      "Caption",
-      "FileSize",
-      "FileType",
-      "LastModified",
-      "Name"
-    ],
-    "extra": [],
-    "settable": [],
-    "caution": "WHERE 無しの列挙は全ディレクトリを辿ります。Name で必ずパスを指定してください。",
-    "methods": []
-  },
-  "DATAFILE": {
-    "className": "CIM_DataFile",
-    "namespace": "root/cimv2",
-    "brief": [
-      "Name",
-      "FileSize",
-      "Extension",
-      "LastModified"
-    ],
-    "defaultGet": [
-      "Extension",
-      "FileSize",
-      "FileType",
-      "LastModified",
-      "Name",
-      "Path"
-    ],
-    "extra": [],
-    "settable": [],
-    "caution": "WHERE 無しは全ファイル列挙です。Name / Drive / Path / Extension で必ず絞ってください。",
-    "methods": []
-  },
-  "ALIAS": {
-    "className": "MSFT_CliAlias",
-    "namespace": "root/cli",
-    "brief": [
-      "FriendlyName",
-      "Target"
-    ],
-    "defaultGet": [
-      "FriendlyName",
-      "Target"
-    ],
-    "extra": [],
-    "settable": [],
-    "caution": "",
-    "methods": []
-  }
+	"OS": {
+		"className": "Win32_OperatingSystem",
+		"namespace": "root/cimv2",
+		"brief": [
+			"BuildNumber",
+			"Organization",
+			"RegisteredUser",
+			"SerialNumber",
+			"SystemDirectory",
+			"Version"
+		],
+		"defaultGet": [
+			"BuildNumber",
+			"Caption",
+			"CodeSet",
+			"CountryCode",
+			"CurrentTimeZone",
+			"Locale",
+			"Manufacturer",
+			"Name",
+			"OSArchitecture",
+			"RegisteredUser",
+			"SerialNumber",
+			"SystemDirectory",
+			"SystemDrive",
+			"TotalVisibleMemorySize",
+			"Version",
+			"WindowsDirectory"
+		],
+		"extra": [
+			"BootDevice",
+			"CSName",
+			"FreePhysicalMemory",
+			"FreeSpaceInPagingFiles",
+			"InstallDate",
+			"LastBootUpTime",
+			"NumberOfProcesses",
+			"NumberOfUsers",
+			"Organization",
+			"OSLanguage",
+			"Status",
+			"TotalVirtualMemorySize"
+		],
+		"settable": [],
+		"caution": "",
+		"methods": [
+			{
+				"name": "Reboot",
+				"static": false,
+				"inParams": [],
+				"description": "再起動"
+			},
+			{
+				"name": "Shutdown",
+				"static": false,
+				"inParams": [],
+				"description": "シャットダウン"
+			},
+			{
+				"name": "Win32Shutdown",
+				"static": false,
+				"inParams": [
+					{
+						"name": "Flags",
+						"type": "int"
+					},
+					{
+						"name": "Reserved",
+						"type": "int",
+						"optional": true
+					}
+				],
+				"description": "ログオフ / 電源操作 (Flags: 0 ログオフ, 1 シャットダウン, 2 再起動, 8 電源オフ)"
+			}
+		]
+	},
+	"CPU": {
+		"className": "Win32_Processor",
+		"namespace": "root/cimv2",
+		"brief": [
+			"Caption",
+			"DeviceID",
+			"Manufacturer",
+			"MaxClockSpeed",
+			"Name",
+			"SocketDesignation"
+		],
+		"defaultGet": [
+			"AddressWidth",
+			"Architecture",
+			"Caption",
+			"DeviceID",
+			"L2CacheSize",
+			"L3CacheSize",
+			"LoadPercentage",
+			"Manufacturer",
+			"MaxClockSpeed",
+			"Name",
+			"NumberOfCores",
+			"NumberOfLogicalProcessors",
+			"SocketDesignation"
+		],
+		"extra": [
+			"CurrentClockSpeed",
+			"Family",
+			"ProcessorId",
+			"Status",
+			"ThreadCount",
+			"VirtualizationFirmwareEnabled"
+		],
+		"settable": [],
+		"caution": "",
+		"methods": []
+	},
+	"COMPUTERSYSTEM": {
+		"className": "Win32_ComputerSystem",
+		"namespace": "root/cimv2",
+		"brief": ["Name", "Manufacturer", "Model", "Domain", "TotalPhysicalMemory"],
+		"defaultGet": [
+			"AdminPasswordStatus",
+			"Domain",
+			"HypervisorPresent",
+			"Manufacturer",
+			"Model",
+			"Name",
+			"NumberOfLogicalProcessors",
+			"NumberOfProcessors",
+			"PartOfDomain",
+			"PrimaryOwnerName",
+			"TotalPhysicalMemory",
+			"UserName",
+			"Workgroup"
+		],
+		"extra": [
+			"BootupState",
+			"DNSHostName",
+			"PCSystemType",
+			"SystemType",
+			"WakeUpType"
+		],
+		"settable": [],
+		"caution": "",
+		"methods": [
+			{
+				"name": "Rename",
+				"static": false,
+				"inParams": [
+					{
+						"name": "Name",
+						"type": "string"
+					}
+				],
+				"description": "コンピュータ名を変更"
+			},
+			{
+				"name": "JoinDomainOrWorkgroup",
+				"static": false,
+				"inParams": [
+					{
+						"name": "Name",
+						"type": "string"
+					},
+					{
+						"name": "Password",
+						"type": "string",
+						"optional": true
+					},
+					{
+						"name": "UserName",
+						"type": "string",
+						"optional": true
+					},
+					{
+						"name": "AccountOU",
+						"type": "string",
+						"optional": true
+					},
+					{
+						"name": "FJoinOptions",
+						"type": "int",
+						"optional": true
+					}
+				],
+				"description": "ドメイン / ワークグループへ参加"
+			}
+		]
+	},
+	"PROCESS": {
+		"className": "Win32_Process",
+		"namespace": "root/cimv2",
+		"brief": [
+			"HandleCount",
+			"Name",
+			"Priority",
+			"ProcessId",
+			"ThreadCount",
+			"WorkingSetSize"
+		],
+		"defaultGet": [
+			"Caption",
+			"CommandLine",
+			"CreationDate",
+			"ExecutablePath",
+			"HandleCount",
+			"Name",
+			"PageFileUsage",
+			"ParentProcessId",
+			"Priority",
+			"ProcessId",
+			"SessionId",
+			"ThreadCount",
+			"WorkingSetSize"
+		],
+		"extra": [
+			"CSName",
+			"Handle",
+			"KernelModeTime",
+			"PeakWorkingSetSize",
+			"PrivatePageCount",
+			"UserModeTime",
+			"VirtualSize"
+		],
+		"settable": [],
+		"caution": "",
+		"methods": [
+			{
+				"name": "Create",
+				"static": true,
+				"inParams": [
+					{
+						"name": "CommandLine",
+						"type": "string"
+					},
+					{
+						"name": "CurrentDirectory",
+						"type": "string",
+						"optional": true
+					}
+				],
+				"description": "プロセスを起動"
+			},
+			{
+				"name": "Terminate",
+				"static": false,
+				"inParams": [
+					{
+						"name": "Reason",
+						"type": "uint32",
+						"optional": true
+					}
+				],
+				"description": "プロセスを終了"
+			},
+			{
+				"name": "GetOwner",
+				"static": false,
+				"inParams": [],
+				"description": "実行ユーザーを取得"
+			}
+		]
+	},
+	"SERVICE": {
+		"className": "Win32_Service",
+		"namespace": "root/cimv2",
+		"brief": ["ExitCode", "Name", "ProcessId", "StartMode", "State", "Status"],
+		"defaultGet": [
+			"Caption",
+			"DisplayName",
+			"Name",
+			"PathName",
+			"ProcessId",
+			"StartMode",
+			"StartName",
+			"State",
+			"Status"
+		],
+		"extra": [
+			"AcceptPause",
+			"AcceptStop",
+			"DelayedAutoStart",
+			"Description",
+			"DesktopInteract",
+			"ExitCode",
+			"ServiceType"
+		],
+		"settable": ["StartMode", "StartName"],
+		"caution": "",
+		"methods": [
+			{
+				"name": "StartService",
+				"static": false,
+				"inParams": [],
+				"description": "開始"
+			},
+			{
+				"name": "StopService",
+				"static": false,
+				"inParams": [],
+				"description": "停止"
+			},
+			{
+				"name": "PauseService",
+				"static": false,
+				"inParams": [],
+				"description": "一時停止"
+			},
+			{
+				"name": "ResumeService",
+				"static": false,
+				"inParams": [],
+				"description": "再開"
+			},
+			{
+				"name": "ChangeStartMode",
+				"static": false,
+				"inParams": [
+					{
+						"name": "StartMode",
+						"type": "string"
+					}
+				],
+				"description": "開始モード変更 (Automatic / Manual / Disabled)"
+			},
+			{
+				"name": "Delete",
+				"static": false,
+				"inParams": [],
+				"description": "サービスを削除"
+			}
+		]
+	},
+	"LOGICALDISK": {
+		"className": "Win32_LogicalDisk",
+		"namespace": "root/cimv2",
+		"brief": ["DeviceID", "VolumeName", "FileSystem", "Size", "FreeSpace"],
+		"defaultGet": [
+			"Compressed",
+			"Description",
+			"DeviceID",
+			"DriveType",
+			"FileSystem",
+			"FreeSpace",
+			"MediaType",
+			"Size",
+			"VolumeName",
+			"VolumeSerialNumber"
+		],
+		"extra": ["SupportsDiskQuotas", "VolumeDirty"],
+		"settable": [],
+		"caution": "",
+		"methods": []
+	},
+	"DISKDRIVE": {
+		"className": "Win32_DiskDrive",
+		"namespace": "root/cimv2",
+		"brief": ["Caption", "Index", "Size", "InterfaceType", "SerialNumber"],
+		"defaultGet": [
+			"BytesPerSector",
+			"Caption",
+			"DeviceID",
+			"Index",
+			"InterfaceType",
+			"MediaType",
+			"Model",
+			"Partitions",
+			"SerialNumber",
+			"Size",
+			"Status"
+		],
+		"extra": [
+			"FirmwareRevision",
+			"PNPDeviceID",
+			"SectorsPerTrack",
+			"TotalCylinders",
+			"TotalSectors"
+		],
+		"settable": [],
+		"caution": "",
+		"methods": []
+	},
+	"NIC": {
+		"className": "Win32_NetworkAdapter",
+		"namespace": "root/cimv2",
+		"brief": ["Name", "MACAddress", "NetEnabled", "Speed"],
+		"defaultGet": [
+			"AdapterType",
+			"DeviceID",
+			"GUID",
+			"Index",
+			"MACAddress",
+			"Manufacturer",
+			"Name",
+			"NetConnectionID",
+			"NetEnabled",
+			"PhysicalAdapter",
+			"Speed",
+			"Status"
+		],
+		"extra": ["PNPDeviceID", "ServiceName"],
+		"settable": [],
+		"caution": "",
+		"methods": [
+			{
+				"name": "Enable",
+				"static": false,
+				"inParams": [],
+				"description": "アダプタを有効化"
+			},
+			{
+				"name": "Disable",
+				"static": false,
+				"inParams": [],
+				"description": "アダプタを無効化"
+			}
+		]
+	},
+	"NICCONFIG": {
+		"className": "Win32_NetworkAdapterConfiguration",
+		"namespace": "root/cimv2",
+		"brief": [
+			"Description",
+			"MACAddress",
+			"IPAddress",
+			"IPEnabled",
+			"DHCPEnabled"
+		],
+		"defaultGet": [
+			"DefaultIPGateway",
+			"Description",
+			"DHCPEnabled",
+			"DHCPServer",
+			"DNSServerSearchOrder",
+			"Index",
+			"IPAddress",
+			"IPEnabled",
+			"IPSubnet",
+			"MACAddress"
+		],
+		"extra": ["DNSDomain", "DNSHostName", "MTU", "ServiceName", "SettingID"],
+		"settable": [],
+		"caution": "",
+		"methods": [
+			{
+				"name": "EnableDHCP",
+				"static": false,
+				"inParams": [],
+				"description": "DHCP を有効化"
+			},
+			{
+				"name": "EnableStatic",
+				"static": false,
+				"inParams": [
+					{
+						"name": "IPAddress",
+						"type": "string[]"
+					},
+					{
+						"name": "SubnetMask",
+						"type": "string[]"
+					}
+				],
+				"description": "静的 IP を設定"
+			}
+		]
+	},
+	"BIOS": {
+		"className": "Win32_BIOS",
+		"namespace": "root/cimv2",
+		"brief": ["Manufacturer", "Name", "SMBIOSBIOSVersion", "ReleaseDate"],
+		"defaultGet": [
+			"BiosCharacteristics",
+			"Caption",
+			"Manufacturer",
+			"Name",
+			"ReleaseDate",
+			"SerialNumber",
+			"SMBIOSBIOSVersion",
+			"SMBIOSMajorVersion",
+			"SMBIOSMinorVersion",
+			"Version"
+		],
+		"extra": [],
+		"settable": [],
+		"caution": "",
+		"methods": []
+	},
+	"BASEBOARD": {
+		"className": "Win32_BaseBoard",
+		"namespace": "root/cimv2",
+		"brief": ["Manufacturer", "Product", "SerialNumber", "Version"],
+		"defaultGet": [
+			"Manufacturer",
+			"Product",
+			"SerialNumber",
+			"Version",
+			"Name",
+			"Model",
+			"HostingBoard"
+		],
+		"extra": [],
+		"settable": [],
+		"caution": "",
+		"methods": []
+	},
+	"MEMORYCHIP": {
+		"className": "Win32_PhysicalMemory",
+		"namespace": "root/cimv2",
+		"brief": ["BankLabel", "Capacity", "Speed", "Manufacturer", "PartNumber"],
+		"defaultGet": [
+			"BankLabel",
+			"Capacity",
+			"ConfiguredClockSpeed",
+			"DeviceLocator",
+			"FormFactor",
+			"Manufacturer",
+			"PartNumber",
+			"SerialNumber",
+			"Speed"
+		],
+		"extra": [],
+		"settable": [],
+		"caution": "",
+		"methods": []
+	},
+	"MEMPHYSICAL": {
+		"className": "Win32_PhysicalMemoryArray",
+		"namespace": "root/cimv2",
+		"brief": ["MaxCapacity", "MemoryDevices"],
+		"defaultGet": [
+			"MaxCapacity",
+			"MemoryDevices",
+			"MemoryErrorCorrection",
+			"Use"
+		],
+		"extra": [],
+		"settable": [],
+		"caution": "",
+		"methods": []
+	},
+	"QFE": {
+		"className": "Win32_QuickFixEngineering",
+		"namespace": "root/cimv2",
+		"brief": ["HotFixID", "InstalledOn", "Description"],
+		"defaultGet": [
+			"Caption",
+			"CSName",
+			"Description",
+			"FixComments",
+			"HotFixID",
+			"InstallDate",
+			"InstalledBy",
+			"InstalledOn"
+		],
+		"extra": [],
+		"settable": [],
+		"caution": "",
+		"methods": []
+	},
+	"PRODUCT": {
+		"className": "Win32_Product",
+		"namespace": "root/cimv2",
+		"brief": ["Name", "Version", "Vendor"],
+		"defaultGet": [
+			"IdentifyingNumber",
+			"InstallDate",
+			"InstallLocation",
+			"Name",
+			"Vendor",
+			"Version"
+		],
+		"extra": ["PackageCache", "PackageName", "URLInfoAbout"],
+		"settable": [],
+		"caution": "Win32_Product の列挙は各 MSI の整合性チェックを走らせ、遅い上にイベントログが汚れます。Get-Package かレジストリ Uninstall キーの方が安全です。",
+		"methods": [
+			{
+				"name": "Uninstall",
+				"static": false,
+				"inParams": [],
+				"description": "アンインストール"
+			}
+		]
+	},
+	"STARTUP": {
+		"className": "Win32_StartupCommand",
+		"namespace": "root/cimv2",
+		"brief": ["Name", "Command", "User", "Location"],
+		"defaultGet": [
+			"Caption",
+			"Command",
+			"Description",
+			"Location",
+			"Name",
+			"User",
+			"UserSID"
+		],
+		"extra": [],
+		"settable": [],
+		"caution": "",
+		"methods": []
+	},
+	"SHARE": {
+		"className": "Win32_Share",
+		"namespace": "root/cimv2",
+		"brief": ["Name", "Path", "Type", "Description"],
+		"defaultGet": [
+			"AllowMaximum",
+			"Caption",
+			"Description",
+			"Name",
+			"Path",
+			"Status",
+			"Type"
+		],
+		"extra": [],
+		"settable": [],
+		"caution": "",
+		"methods": [
+			{
+				"name": "Create",
+				"static": true,
+				"inParams": [
+					{
+						"name": "Path",
+						"type": "string"
+					},
+					{
+						"name": "Name",
+						"type": "string"
+					},
+					{
+						"name": "Type",
+						"type": "uint32"
+					},
+					{
+						"name": "MaximumAllowed",
+						"type": "uint32",
+						"optional": true
+					},
+					{
+						"name": "Description",
+						"type": "string",
+						"optional": true
+					}
+				],
+				"description": "共有を作成"
+			},
+			{
+				"name": "Delete",
+				"static": false,
+				"inParams": [],
+				"description": "共有を削除"
+			}
+		]
+	},
+	"USERACCOUNT": {
+		"className": "Win32_UserAccount",
+		"namespace": "root/cimv2",
+		"brief": ["Name", "Domain", "Disabled", "SID"],
+		"defaultGet": [
+			"AccountType",
+			"Disabled",
+			"Domain",
+			"FullName",
+			"LocalAccount",
+			"Lockout",
+			"Name",
+			"SID",
+			"SIDType",
+			"Status"
+		],
+		"extra": [
+			"Description",
+			"PasswordChangeable",
+			"PasswordExpires",
+			"PasswordRequired"
+		],
+		"settable": [],
+		"caution": "ドメイン環境ではフィルタ無しの列挙は重いです。Name か Domain で絞ってください。",
+		"methods": []
+	},
+	"GROUP": {
+		"className": "Win32_Group",
+		"namespace": "root/cimv2",
+		"brief": ["Name", "Domain", "SID"],
+		"defaultGet": [
+			"Description",
+			"Domain",
+			"LocalAccount",
+			"Name",
+			"SID",
+			"SIDType",
+			"Status"
+		],
+		"extra": [],
+		"settable": [],
+		"caution": "",
+		"methods": []
+	},
+	"ENVIRONMENT": {
+		"className": "Win32_Environment",
+		"namespace": "root/cimv2",
+		"brief": ["Name", "UserName", "VariableValue"],
+		"defaultGet": ["Name", "SystemVariable", "UserName", "VariableValue"],
+		"extra": [],
+		"settable": ["VariableValue"],
+		"caution": "",
+		"methods": []
+	},
+	"PRINTER": {
+		"className": "Win32_Printer",
+		"namespace": "root/cimv2",
+		"brief": ["Name", "DriverName", "PortName", "PrinterStatus"],
+		"defaultGet": [
+			"Default",
+			"DriverName",
+			"Name",
+			"Network",
+			"PortName",
+			"PrinterStatus",
+			"Shared",
+			"ShareName"
+		],
+		"extra": ["Location", "PrintProcessor", "WorkOffline"],
+		"settable": [],
+		"caution": "",
+		"methods": []
+	},
+	"PAGEFILE": {
+		"className": "Win32_PageFileUsage",
+		"namespace": "root/cimv2",
+		"brief": ["Name", "AllocatedBaseSize", "CurrentUsage", "PeakUsage"],
+		"defaultGet": [
+			"AllocatedBaseSize",
+			"CurrentUsage",
+			"Name",
+			"PeakUsage",
+			"TempPageFile"
+		],
+		"extra": [],
+		"settable": [],
+		"caution": "",
+		"methods": []
+	},
+	"PARTITION": {
+		"className": "Win32_DiskPartition",
+		"namespace": "root/cimv2",
+		"brief": ["DeviceID", "DiskIndex", "Size", "Type", "Bootable"],
+		"defaultGet": [
+			"Bootable",
+			"BootPartition",
+			"DeviceID",
+			"DiskIndex",
+			"Index",
+			"PrimaryPartition",
+			"Size",
+			"Type"
+		],
+		"extra": [],
+		"settable": [],
+		"caution": "",
+		"methods": []
+	},
+	"VOLUME": {
+		"className": "Win32_Volume",
+		"namespace": "root/cimv2",
+		"brief": ["DriveLetter", "Label", "FileSystem", "Capacity", "FreeSpace"],
+		"defaultGet": [
+			"Capacity",
+			"DeviceID",
+			"DriveLetter",
+			"FileSystem",
+			"FreeSpace",
+			"Label",
+			"SerialNumber"
+		],
+		"extra": [
+			"BootVolume",
+			"IndexingEnabled",
+			"PageFilePresent",
+			"SystemVolume"
+		],
+		"settable": [],
+		"caution": "",
+		"methods": []
+	},
+	"TIMEZONE": {
+		"className": "Win32_TimeZone",
+		"namespace": "root/cimv2",
+		"brief": ["StandardName", "Caption", "Bias"],
+		"defaultGet": ["Bias", "Caption", "DaylightName", "StandardName"],
+		"extra": [],
+		"settable": [],
+		"caution": "",
+		"methods": []
+	},
+	"DESKTOPMONITOR": {
+		"className": "Win32_DesktopMonitor",
+		"namespace": "root/cimv2",
+		"brief": ["Name", "ScreenWidth", "ScreenHeight", "PNPDeviceID"],
+		"defaultGet": [
+			"Name",
+			"PNPDeviceID",
+			"ScreenHeight",
+			"ScreenWidth",
+			"Status"
+		],
+		"extra": [],
+		"settable": [],
+		"caution": "",
+		"methods": []
+	},
+	"SOUNDDEV": {
+		"className": "Win32_SoundDevice",
+		"namespace": "root/cimv2",
+		"brief": ["Name", "Manufacturer", "Status"],
+		"defaultGet": ["Manufacturer", "Name", "ProductName", "Status"],
+		"extra": [],
+		"settable": [],
+		"caution": "",
+		"methods": []
+	},
+	"SYSDRIVER": {
+		"className": "Win32_SystemDriver",
+		"namespace": "root/cimv2",
+		"brief": ["Name", "State", "StartMode", "PathName"],
+		"defaultGet": [
+			"DisplayName",
+			"Name",
+			"PathName",
+			"StartMode",
+			"State",
+			"Status"
+		],
+		"extra": ["AcceptPause", "AcceptStop", "Description", "ServiceType"],
+		"settable": [],
+		"caution": "",
+		"methods": []
+	},
+	"CDROM": {
+		"className": "Win32_CDROMDrive",
+		"namespace": "root/cimv2",
+		"brief": ["Caption", "Drive", "MediaLoaded"],
+		"defaultGet": [
+			"Caption",
+			"Drive",
+			"Manufacturer",
+			"MediaLoaded",
+			"MediaType",
+			"Name"
+		],
+		"extra": [],
+		"settable": [],
+		"caution": "",
+		"methods": []
+	},
+	"NTEVENTLOG": {
+		"className": "Win32_NTEventlogFile",
+		"namespace": "root/cimv2",
+		"brief": ["LogfileName", "FileSize", "NumberOfRecords", "Name"],
+		"defaultGet": [
+			"FileSize",
+			"LogfileName",
+			"MaxFileSize",
+			"Name",
+			"NumberOfRecords",
+			"OverwriteOutDated"
+		],
+		"extra": [],
+		"settable": [],
+		"caution": "",
+		"methods": []
+	},
+	"NTEVENT": {
+		"className": "Win32_NTLogEvent",
+		"namespace": "root/cimv2",
+		"brief": ["Logfile", "EventCode", "Type", "TimeGenerated", "SourceName"],
+		"defaultGet": [
+			"Category",
+			"EventCode",
+			"EventIdentifier",
+			"EventType",
+			"Logfile",
+			"Message",
+			"RecordNumber",
+			"SourceName",
+			"TimeGenerated",
+			"Type",
+			"User"
+		],
+		"extra": [],
+		"settable": [],
+		"caution": "フィルタ無しの NTEVENT は巨大です。Logfile と TimeGenerated で必ず絞ってください。",
+		"methods": []
+	},
+	"JOB": {
+		"className": "Win32_ScheduledJob",
+		"namespace": "root/cimv2",
+		"brief": ["JobId", "Command", "StartTime", "DaysOfWeek"],
+		"defaultGet": [
+			"Command",
+			"DaysOfMonth",
+			"DaysOfWeek",
+			"JobId",
+			"JobStatus",
+			"Owner",
+			"StartTime"
+		],
+		"extra": [],
+		"settable": [],
+		"caution": "Win32_ScheduledJob は AT サービス向けです。現行のタスクは Get-ScheduledTask を使ってください。",
+		"methods": []
+	},
+	"REGISTRY": {
+		"className": "Win32_Registry",
+		"namespace": "root/cimv2",
+		"brief": ["CurrentSize", "MaximumSize", "ProposedSize"],
+		"defaultGet": ["CurrentSize", "MaximumSize", "ProposedSize", "Status"],
+		"extra": [],
+		"settable": [],
+		"caution": "",
+		"methods": []
+	},
+	"CSPRODUCT": {
+		"className": "Win32_ComputerSystemProduct",
+		"namespace": "root/cimv2",
+		"brief": ["Vendor", "Name", "IdentifyingNumber", "UUID"],
+		"defaultGet": [
+			"IdentifyingNumber",
+			"Name",
+			"SKUNumber",
+			"UUID",
+			"Vendor",
+			"Version"
+		],
+		"extra": [],
+		"settable": [],
+		"caution": "",
+		"methods": []
+	},
+	"RECOVEROS": {
+		"className": "Win32_OSRecoveryConfiguration",
+		"namespace": "root/cimv2",
+		"brief": ["DebugFilePath", "WriteToSystemLog", "AutoReboot"],
+		"defaultGet": [
+			"AutoReboot",
+			"DebugFilePath",
+			"OverwriteExistingDebugFile",
+			"WriteDebugInfo",
+			"WriteToSystemLog"
+		],
+		"extra": [],
+		"settable": [
+			"AutoReboot",
+			"DebugFilePath",
+			"WriteDebugInfo",
+			"WriteToSystemLog"
+		],
+		"caution": "",
+		"methods": []
+	},
+	"NETUSE": {
+		"className": "Win32_NetworkConnection",
+		"namespace": "root/cimv2",
+		"brief": ["LocalName", "RemoteName", "ConnectionState", "UserName"],
+		"defaultGet": [
+			"ConnectionState",
+			"LocalName",
+			"Persistent",
+			"RemoteName",
+			"UserName"
+		],
+		"extra": [],
+		"settable": [],
+		"caution": "",
+		"methods": []
+	},
+	"NETPROTOCOL": {
+		"className": "Win32_NetworkProtocol",
+		"namespace": "root/cimv2",
+		"brief": ["Name", "Status"],
+		"defaultGet": [
+			"Caption",
+			"ConnectionlessService",
+			"Name",
+			"Status",
+			"SupportsBroadcasting"
+		],
+		"extra": [],
+		"settable": [],
+		"caution": "",
+		"methods": []
+	},
+	"SYSTEMENCLOSURE": {
+		"className": "Win32_SystemEnclosure",
+		"namespace": "root/cimv2",
+		"brief": ["Manufacturer", "SerialNumber", "ChassisTypes", "LockPresent"],
+		"defaultGet": [
+			"ChassisTypes",
+			"LockPresent",
+			"Manufacturer",
+			"SerialNumber",
+			"SMBIOSAssetTag",
+			"Tag"
+		],
+		"extra": [],
+		"settable": [],
+		"caution": "",
+		"methods": []
+	},
+	"DESKTOP": {
+		"className": "Win32_Desktop",
+		"namespace": "root/cimv2",
+		"brief": ["Name", "Wallpaper", "ScreenSaverActive"],
+		"defaultGet": [
+			"BorderWidth",
+			"Name",
+			"ScreenSaverActive",
+			"ScreenSaverExecutable",
+			"Wallpaper"
+		],
+		"extra": [],
+		"settable": [],
+		"caution": "",
+		"methods": []
+	},
+	"LOGON": {
+		"className": "Win32_LogonSession",
+		"namespace": "root/cimv2",
+		"brief": ["LogonId", "LogonType", "StartTime"],
+		"defaultGet": [
+			"AuthenticationPackage",
+			"LogonId",
+			"LogonType",
+			"Name",
+			"StartTime"
+		],
+		"extra": [],
+		"settable": [],
+		"caution": "",
+		"methods": []
+	},
+	"FSDIR": {
+		"className": "Win32_Directory",
+		"namespace": "root/cimv2",
+		"brief": ["Name", "FileSize", "LastModified"],
+		"defaultGet": [
+			"Archive",
+			"Caption",
+			"FileSize",
+			"FileType",
+			"LastModified",
+			"Name"
+		],
+		"extra": [],
+		"settable": [],
+		"caution": "WHERE 無しの列挙は全ディレクトリを辿ります。Name で必ずパスを指定してください。",
+		"methods": []
+	},
+	"DATAFILE": {
+		"className": "CIM_DataFile",
+		"namespace": "root/cimv2",
+		"brief": ["Name", "FileSize", "Extension", "LastModified"],
+		"defaultGet": [
+			"Extension",
+			"FileSize",
+			"FileType",
+			"LastModified",
+			"Name",
+			"Path"
+		],
+		"extra": [],
+		"settable": [],
+		"caution": "WHERE 無しは全ファイル列挙です。Name / Drive / Path / Extension で必ず絞ってください。",
+		"methods": []
+	},
+	"ALIAS": {
+		"className": "MSFT_CliAlias",
+		"namespace": "root/cli",
+		"brief": ["FriendlyName", "Target"],
+		"defaultGet": ["FriendlyName", "Target"],
+		"extra": [],
+		"settable": [],
+		"caution": "",
+		"methods": []
+	}
 }

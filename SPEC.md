@@ -21,7 +21,7 @@ WMI リポジトリ（Win32_* の中身）は COM でも CIM でも同じです�
 
 ## 2. 受け付ける構文
 
-```
+```bat
 wmic [スイッチ] <エイリアス | PATH クラス> [where <WQL>] <動詞> [引数]
 ```
 
@@ -100,13 +100,13 @@ WHERE の文字列は WQL では単引用です。公式 WMIC の `name="explore
 
 両方死んだときは両方のメッセージを出して失敗します。
 
-```
+```text
 /NODE:HOST : WS-Man 失敗 (...); DCOM も失敗 (...)
 ```
 
 DCOM に落ちたときは **そのホストで一度だけ** 警告します。
 
-```
+```text
 WARNING: /NODE:HOST : WS-Man に失敗したため DCOM で接続しました。固定するなら /protocol:dcom
 ```
 
