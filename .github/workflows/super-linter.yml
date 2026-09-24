@@ -1,0 +1,37 @@
+# This workflow executes several linters on changed files based on languages used in your code base whenever you push a code or open a pull request.
+# You can adjust the behavior by modifying this file.
+# For more information, see: https://github.com/super-linter/super-linter
+name: Lint Code Base
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+permissions: {}
+jobs:
+  run-lint:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+      issues: write
+      pull-requests: write
+      statuses: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Lint Code Base
+        # zizmor: ignore[artipacked] -- Super-Linter内部の成果物処理を利用する
+        uses: super-linter/super-linter@4ce20838b8ab83717e78138c5b3a1407148e0918
+        env:
+          VALIDATE_ALL_CODEBASE: false
+          DEFAULT_BRANCH: "main"
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VALIDATE_JSON_PRETTIER: false # biomeとの競合を避けるために無効化
+          VALIDATE_MARKDOWN_PRETTIER: false # 不毛な対応を避けるために無効化
+

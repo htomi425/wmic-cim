@@ -9,19 +9,19 @@ WMIC コマンドラインを **CIM cmdlet** に通すラッパーの仕様で�
 
 ## 1. 対象環境
 
-| 項目 | 値 |
-| --- | --- |
-| OS | Windows 8 / Server 2012 以降（CIM cmdlet があること） |
-| 起動 | `wmic.exe` が同じフォルダの `wmic.ps1` を PowerShell に渡す。`pwsh` があればそれ、無ければ Windows PowerShell 5.1 |
-| スクリプトの文字コード | UTF-8 **BOM 付き**（5.1 が Shift-JIS と誤認しないため。システム UTF-8 設定は不要） |
-| ローカル API | 常に CIM。プロセス内で Winmgmt に届く |
-| リモート API | 既定 WS-Man（WinRM）。接続失敗時だけ DCOM |
+| 項目                   | 値                                                                                                                |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| OS                     | Windows 8 / Server 2012 以降（CIM cmdlet があること）                                                             |
+| 起動                   | `wmic.exe` が同じフォルダの `wmic.ps1` を PowerShell に渡す。`pwsh` があればそれ、無ければ Windows PowerShell 5.1 |
+| スクリプトの文字コード | UTF-8 **BOM 付き**（5.1 が Shift-JIS と誤認しないため。システム UTF-8 設定は不要）                                |
+| ローカル API           | 常に CIM。プロセス内で Winmgmt に届く                                                                             |
+| リモート API           | 既定 WS-Man（WinRM）。接続失敗時だけ DCOM                                                                         |
 
 WMI リポジトリ（Win32_* の中身）は COM でも CIM でも同じです。違うのはクライアントとリモートのプロトコルです。
 
 ## 2. 受け付ける構文
 
-```
+```bat
 wmic [スイッチ] <エイリアス | PATH クラス> [where <WQL>] <動詞> [引数]
 ```
 
@@ -31,16 +31,16 @@ wmic [スイッチ] <エイリアス | PATH クラス> [where <WQL>] <動詞> [�
 
 ### 2.1 スイッチ
 
-| スイッチ | 意味 | WMIC 互換 |
-| --- | --- | --- |
-| `/NODE:host[,host2]` | リモート対象。カンマ区切りで複数可 | 互換 |
-| `/NAMESPACE:root\cimv2` | CIM 名前空間。`\` と `/` どちらでも可 | 互換 |
-| `/USER:name` | 資格情報。`/NODE` 必須 | 互換（用途をリモートに限定） |
-| `/PASSWORD:secret` | 平文パスワード。非推奨 | 互換（残しているだけ） |
-| `/FORMAT:TABLE\|LIST\|CSV\|VALUE\|XML` | 出力形式 | ほぼ互換。MOF は XML 扱い |
-| `/OUTPUT:file` | 標準出力を上書き保存 | 互換 |
-| `/APPEND:file` | 追記 | 互換 |
-| `/PROTOCOL:AUTO\|WSMAN\|DCOM` | `/NODE` のプロトコル | **CIMIC 拡張**（WMIC に無い） |
+| スイッチ                               | 意味                                  | WMIC 互換                     |
+| -------------------------------------- | ------------------------------------- | ----------------------------- |
+| `/NODE:host[,host2]`                   | リモート対象。カンマ区切りで複数可    | 互換                          |
+| `/NAMESPACE:root\cimv2`                | CIM 名前空間。`\` と `/` どちらでも可 | 互換                          |
+| `/USER:name`                           | 資格情報。`/NODE` 必須                | 互換（用途をリモートに限定）  |
+| `/PASSWORD:secret`                     | 平文パスワード。非推奨                | 互換（残しているだけ）        |
+| `/FORMAT:TABLE\|LIST\|CSV\|VALUE\|XML` | 出力形式                              | ほぼ互換。MOF は XML 扱い     |
+| `/OUTPUT:file`                         | 標準出力を上書き保存                  | 互換                          |
+| `/APPEND:file`                         | 追記                                  | 互換                          |
+| `/PROTOCOL:AUTO\|WSMAN\|DCOM`          | `/NODE` のプロトコル                  | **CIMIC 拡張**（WMIC に無い） |
 
 優先順位: **`/PROTOCOL` > 環境変数 `WMIC_PROTOCOL` > `AUTO`**。
 
@@ -48,15 +48,15 @@ wmic [スイッチ] <エイリアス | PATH クラス> [where <WQL>] <動詞> [�
 
 ### 2.2 動詞
 
-| 動詞 | CIM | 備考 |
-| --- | --- | --- |
-| `GET`（省略時も GET） | `Get-CimInstance` + 列選択 | 列指定なしは全プロパティ（名前順）。`LIST BRIEF` だけエイリアスの BRIEF |
-| `LIST [BRIEF\|FULL]` | 同上 | BRIEF はエイリアスの brief 列 |
-| `SET name=value,...` | `Set-CimInstance` | |
-| `CALL method [args]` | `Invoke-CimMethod` | クラスの in パラメータ順で位置引数を埋める |
-| `CREATE name=value,...` | `New-CimInstance` | |
-| `DELETE` | `Remove-CimInstance` | WHERE 必須 |
-| `ASSOCIATORS` / `ASSOC` | `Get-CimAssociatedInstance` | |
+| 動詞                    | CIM                         | 備考                                                                    |
+| ----------------------- | --------------------------- | ----------------------------------------------------------------------- |
+| `GET`（省略時も GET）   | `Get-CimInstance` + 列選択  | 列指定なしは全プロパティ（名前順）。`LIST BRIEF` だけエイリアスの BRIEF |
+| `LIST [BRIEF\|FULL]`    | 同上                        | BRIEF はエイリアスの brief 列                                           |
+| `SET name=value,...`    | `Set-CimInstance`           |                                                                         |
+| `CALL method [args]`    | `Invoke-CimMethod`          | クラスの in パラメータ順で位置引数を埋める                              |
+| `CREATE name=value,...` | `New-CimInstance`           |                                                                         |
+| `DELETE`                | `Remove-CimInstance`        | WHERE 必須                                                              |
+| `ASSOCIATORS` / `ASSOC` | `Get-CimAssociatedInstance` |                                                                         |
 
 `PATH Win32_Foo` は未登録クラスでも通ります。エイリアス表は `aliases.json` です。
 
@@ -68,13 +68,13 @@ WHERE の文字列は WQL では単引用です。公式 WMIC の `name="explore
 
 ### 3.1 判定
 
-| 対象 | セッション | プロトコル |
-| --- | --- | --- |
-| `/NODE` なし | 作らない | プロセス内 |
-| `.` / `localhost` / `127.0.0.1` / `::1` / 自ホスト名 | 作らない | プロセス内（WinRM 自己接続を避ける） |
-| それ以外 + `AUTO`（既定） | `New-CimSession` | **WS-Man を最大 5 秒 → 接続失敗時だけ DCOM** |
-| `/PROTOCOL:WSMAN` | `New-CimSession` | WS-Man のみ。落とさない |
-| `/PROTOCOL:DCOM` | `New-CimSession -SessionOption Dcom` | DCOM のみ。WinRM を試さない |
+| 対象                                                 | セッション                           | プロトコル                                   |
+| ---------------------------------------------------- | ------------------------------------ | -------------------------------------------- |
+| `/NODE` なし                                         | 作らない                             | プロセス内                                   |
+| `.` / `localhost` / `127.0.0.1` / `::1` / 自ホスト名 | 作らない                             | プロセス内（WinRM 自己接続を避ける）         |
+| それ以外 + `AUTO`（既定）                            | `New-CimSession`                     | **WS-Man を最大 5 秒 → 接続失敗時だけ DCOM** |
+| `/PROTOCOL:WSMAN`                                    | `New-CimSession`                     | WS-Man のみ。落とさない                      |
+| `/PROTOCOL:DCOM`                                     | `New-CimSession -SessionOption Dcom` | DCOM のみ。WinRM を試さない                  |
 
 `/NODE:a,b` は **ホストごとに** セッションを作ります。片方が WS-Man、もう片方が DCOM、があり得ます。
 
@@ -100,13 +100,13 @@ WHERE の文字列は WQL では単引用です。公式 WMIC の `name="explore
 
 両方死んだときは両方のメッセージを出して失敗します。
 
-```
+```text
 /NODE:HOST : WS-Man 失敗 (...); DCOM も失敗 (...)
 ```
 
 DCOM に落ちたときは **そのホストで一度だけ** 警告します。
 
-```
+```text
 WARNING: /NODE:HOST : WS-Man に失敗したため DCOM で接続しました。固定するなら /protocol:dcom
 ```
 
@@ -120,20 +120,20 @@ WMIC の既定に寄せます。
 New-CimSessionOption -Protocol Dcom -Impersonation Impersonate -PacketPrivacy
 ```
 
-| 項目 | 値 |
-| --- | --- |
-| Impersonation | Impersonate |
-| Auth | Packet Privacy |
-| 資格情報 | `New-CimSession -Credential` のみ。`Get-CimInstance -CimSession` には付けない |
+| 項目          | 値                                                                            |
+| ------------- | ----------------------------------------------------------------------------- |
+| Impersonation | Impersonate                                                                   |
+| Auth          | Packet Privacy                                                                |
+| 資格情報      | `New-CimSession -Credential` のみ。`Get-CimInstance -CimSession` には付けない |
 
 `/IMPLEVEL` / `/AUTHLEVEL` はまだマップしません。今は上の既定固定です。
 
 ### 3.4 ポート
 
-| プロトコル | 相手が開けるもの |
-| --- | --- |
-| WS-Man | 5985 (HTTP) / 5986 (HTTPS) |
-| DCOM | 135 + 動的 RPC |
+| プロトコル | 相手が開けるもの           |
+| ---------- | -------------------------- |
+| WS-Man     | 5985 (HTTP) / 5986 (HTTPS) |
+| DCOM       | 135 + 動的 RPC             |
 
 フォールバックしても、相手のファイアウォールが RPC を切っていれば DCOM も失敗します。ラッパーはポートを開けません。
 
@@ -145,34 +145,34 @@ New-CimSessionOption -Protocol Dcom -Impersonation Impersonate -PacketPrivacy
 
 これらは WMIC より厳しいです。意図的です。
 
-| 操作 | 挙動 |
-| --- | --- |
-| WHERE 無しの `DELETE` | 拒否 |
-| `DATAFILE` / `FSDIR` / `NTEVENT` を WHERE 無し | 拒否（全ディスク・全イベントになる） |
-| `PRODUCT` (`Win32_Product`) | 実行はする。列挙のたびに MSI 整合性チェックが走るので警告 |
-| `/PASSWORD` | 受け付けるが平文。ログに残る |
+| 操作                                           | 挙動                                                      |
+| ---------------------------------------------- | --------------------------------------------------------- |
+| WHERE 無しの `DELETE`                          | 拒否                                                      |
+| `DATAFILE` / `FSDIR` / `NTEVENT` を WHERE 無し | 拒否（全ディスク・全イベントになる）                      |
+| `PRODUCT` (`Win32_Product`)                    | 実行はする。列挙のたびに MSI 整合性チェックが走るので警告 |
+| `/PASSWORD`                                    | 受け付けるが平文。ログに残る                              |
 
 ## 5. 出力
 
-| `/FORMAT` / 動詞 | 出力 |
-| --- | --- |
-| 省略時 GET | 全 CIM プロパティのテーブル（名前順）。0 件なら `利用できるインスタンスがありません。` |
-| `LIST BRIEF` | テーブル。列はエイリアスの BRIEF |
-| `LIST` / `LIST FULL` / `VALUE` | `Name=Value`（パディングなし） |
-| `/FORMAT:LIST` を BRIEF に付けたとき | `Name=Value` |
-| `CSV` | `ConvertTo-Csv -NoTypeInformation` |
-| `XML` | `ConvertTo-Xml -As String`（WMIC の XML とスキーマは違う） |
-| `CALL` | 先に `(Class)->Method() を実行しています`、実行後に成功文と `instance of __PARAMETERS` |
-| `DELETE` | 先に `インスタンス \\host\NS:Class.Key="id" を削除しています`、成功後に `インスタンスは正しく削除されました。` |
-| 日時 | CIM DATETIME `yyyyMMddHHmmss.ffffff+mmm`（タイムゾーンは分。`+09:00` ではない） |
-| 論理値 | `TRUE` / `FALSE` |
+| `/FORMAT` / 動詞                     | 出力                                                                                                           |
+| ------------------------------------ | -------------------------------------------------------------------------------------------------------------- |
+| 省略時 GET                           | 全 CIM プロパティのテーブル（名前順）。0 件なら `利用できるインスタンスがありません。`                         |
+| `LIST BRIEF`                         | テーブル。列はエイリアスの BRIEF                                                                               |
+| `LIST` / `LIST FULL` / `VALUE`       | `Name=Value`（パディングなし）                                                                                 |
+| `/FORMAT:LIST` を BRIEF に付けたとき | `Name=Value`                                                                                                   |
+| `CSV`                                | `ConvertTo-Csv -NoTypeInformation`                                                                             |
+| `XML`                                | `ConvertTo-Xml -As String`（WMIC の XML とスキーマは違う）                                                     |
+| `CALL`                               | 先に `(Class)->Method() を実行しています`、実行後に成功文と `instance of __PARAMETERS`                         |
+| `DELETE`                             | 先に `インスタンス \\host\NS:Class.Key="id" を削除しています`、成功後に `インスタンスは正しく削除されました。` |
+| 日時                                 | CIM DATETIME `yyyyMMddHHmmss.ffffff+mmm`（タイムゾーンは分。`+09:00` ではない）                                |
+| 論理値                               | `TRUE` / `FALSE`                                                                                               |
 
 CIM が変換した `DateTime` を、表示だけ DMTF 風に戻しています。バッチが文字列比較している場合の救済です。完全一致は保証しません。
 
 ## 6. 環境変数
 
-| 名前 | 値 | 意味 |
-| --- | --- | --- |
+| 名前            | 値                        | 意味                         |
+| --------------- | ------------------------- | ---------------------------- |
 | `WMIC_PROTOCOL` | `AUTO` / `WSMAN` / `DCOM` | `/PROTOCOL` が無いときの既定 |
 
 バッチの途中にスイッチを差し込めないとき用です。`/PROTOCOL` があればそちらが勝ちます。
