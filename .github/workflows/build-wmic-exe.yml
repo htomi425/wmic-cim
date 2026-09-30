@@ -1,0 +1,71 @@
+# wmic-stub.c が main に入ったとき、Zig 0.14.1 で wmic.exe を作り直してコミットする。
+# このコミットは wmic-stub.c を触らないので、同じ workflow は再実行されない。
+name: Build wmic.exe
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "wmic-stub.c"
+      - ".github/workflows/build-wmic-exe.yml"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install Zig 0.14.1
+        run: |
+          curl -fsSL -o zig.tar.xz "https://ziglang.org/download/0.14.1/zig-x86_64-linux-0.14.1.tar.xz"
+          tar --no-same-owner -xJf zig.tar.xz
+          echo "$PWD/zig-x86_64-linux-0.14.1" >> "$GITHUB_PATH"
+
+      - name: Build
+        run: zig cc -target x86_64-windows-gnu -O2 -s -o wmic.exe wmic-stub.c
+
+      - name: Update hashes and commit
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          exe=$(sha256sum wmic.exe | awk '{print $1}')
+          stub=$(sha256sum wmic-stub.c | awk '{print $1}')
+          python3 - "$stub" "$exe" <<'PY'
+          import pathlib, re, sys
+          stub, exe = sys.argv[1], sys.argv[2]
+          path = pathlib.Path("README.md")
+          text = path.read_text(encoding="utf-8")
+          text, n_stub = re.subn(
+              r"(?m)^wmic-stub\.c\s+[0-9a-f]{64}\s*$",
+              f"wmic-stub.c  {stub}",
+              text,
+              count=1,
+          )
+          text, n_exe = re.subn(
+              r"(?m)^wmic\.exe\s+[0-9a-f]{64}\s*$",
+              f"wmic.exe     {exe}",
+              text,
+              count=1,
+          )
+          if n_stub != 1 or n_exe != 1:
+              raise SystemExit("README.md の SHA-256 行が見つかりません。")
+          path.write_text(text, encoding="utf-8")
+          PY
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- wmic.exe README.md
+          if git diff --cached --quiet; then
+            echo "wmic.exe は最新です。"
+            exit 0
+          fi
+          git commit -m "Build wmic.exe from wmic-stub.c"
+          git -c http.extraheader="AUTHORIZATION: bearer ${GITHUB_TOKEN}" push origin HEAD:main
