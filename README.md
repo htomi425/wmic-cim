@@ -1,5 +1,7 @@
 # wmic-cim
 
+[![Codacy Badge](https://app.codacy.com/project/badge/Grade/2bd941d7fded47cfa8fbdb9c39f336b3)](https://app.codacy.com/gh/htomi425/wmic-cim/dashboard)
+
 `wmic.exe` が **無い** 環境向けの CIM 互換ラッパーです。Windows 11 24H2 / Windows Server 2025 では WMIC が既定で入りません。
 
 公式 `wmic.exe` があるマシンでは不要です。`Install.ps1` は exe を見つけると何もしません。
